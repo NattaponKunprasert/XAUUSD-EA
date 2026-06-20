@@ -112,6 +112,35 @@ def pnl_usd(entry_ask: float, exit_bid: float, lot: float, broker: BrokerProfile
     return gross - broker.commission_per_lot_round_turn_usd * lot - broker.fee_per_lot_round_turn_usd * lot
 
 
+def resolve_long_exit_bid(
+    *,
+    bar_open_bid: float,
+    bar_high_bid: float,
+    bar_low_bid: float,
+    stop_bid: float,
+    target_bid: float,
+) -> tuple[float | None, str | None]:
+    """Resolve a long exit on Bid OHLC using a conservative intrabar policy.
+
+    Gap-at-open handling is explicit:
+    - if the bar opens through the stop, exit at the open Bid
+    - if the bar opens through the target, exit at the open Bid
+    - if both stop and target are reached later within the same bar, prefer SL
+    """
+    if bar_open_bid <= stop_bid:
+        return bar_open_bid, "SL"
+    if bar_open_bid >= target_bid:
+        return bar_open_bid, "TP"
+
+    stop_hit = bar_low_bid <= stop_bid
+    target_hit = bar_high_bid >= target_bid
+    if stop_hit:
+        return stop_bid, "SL"
+    if target_hit:
+        return target_bid, "TP"
+    return None, None
+
+
 def fixed_m15_smoke_configs() -> list[dict]:
     """Tiny fixed configuration set; not an optimization grid."""
     return [
@@ -153,16 +182,29 @@ def run_m15_baseline_smoke(df: pd.DataFrame, broker: BrokerProfile, config: dict
                 "target_bid": entry_ask + risk_distance * config["rr"],
                 "lot": lot,
             }
+            exit_bid, exit_reason = resolve_long_exit_bid(
+                bar_open_bid=row["open"],
+                bar_high_bid=row["high"],
+                bar_low_bid=row["low"],
+                stop_bid=position["stop_bid"],
+                target_bid=position["target_bid"],
+            )
+            if exit_reason:
+                trade_pnl = pnl_usd(position["entry_ask"], exit_bid, position["lot"], broker)
+                capital += trade_pnl
+                trades.append({**position, "exit_time": row.name, "exit_bid": exit_bid, "reason": exit_reason, "pnl": trade_pnl})
+                position = None
+                if len(trades) >= config["max_trades"]:
+                    break
             continue
 
-        exit_reason = None
-        exit_bid = None
-        if row["low"] <= position["stop_bid"]:
-            exit_bid = position["stop_bid"]
-            exit_reason = "SL"
-        elif row["high"] >= position["target_bid"]:
-            exit_bid = position["target_bid"]
-            exit_reason = "TP"
+        exit_bid, exit_reason = resolve_long_exit_bid(
+            bar_open_bid=row["open"],
+            bar_high_bid=row["high"],
+            bar_low_bid=row["low"],
+            stop_bid=position["stop_bid"],
+            target_bid=position["target_bid"],
+        )
 
         if exit_reason:
             trade_pnl = pnl_usd(position["entry_ask"], exit_bid, position["lot"], broker)
