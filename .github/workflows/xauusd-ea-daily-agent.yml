@@ -1,0 +1,138 @@
+name: XAUUSD EA daily agent
+
+on:
+  schedule:
+    # 09:00 Asia/Bangkok (UTC+7)
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: xauusd-ea-daily-agent
+  cancel-in-progress: false
+
+jobs:
+  daily-milestone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # The 30-day scheduled trial runs through 20 July 2026, then exits before calling the API.
+      TRIAL_END_DATE_UTC: "2026-07-20"
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Enforce trial window, choose model, and gate open PRs
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          today="$(date -u +%F)"
+          if [[ "$today" > "$TRIAL_END_DATE_UTC" ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "The one-month trial ended on $TRIAL_END_DATE_UTC; skipping before API use."
+            exit 0
+          fi
+
+          # The workflow runs at 02:00 UTC, so the UTC weekday matches the Bangkok weekday.
+          if [ "$(date -u +%u)" = "7" ]; then
+            model="gpt-5.5"
+          else
+            model="gpt-5.4"
+          fi
+          echo "model=$model" >> "$GITHUB_OUTPUT"
+          echo "Selected model: $model"
+
+          count="$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("codex/daily-"))] | length')"
+          if [ "$count" -gt 0 ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "An earlier daily-agent PR is still open; skipping this run."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: python -m pip install -r requirements.txt
+
+      - name: Create isolated daily branch
+        if: steps.gate.outputs.run == 'true'
+        id: branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="codex/daily-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git checkout -b "$branch"
+          echo "name=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Run bounded Codex milestone
+        if: steps.gate.outputs.run == 'true'
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/daily-builder.md
+          model: ${{ steps.gate.outputs.model }}
+          effort: medium
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+
+      - name: Run test suite
+        if: steps.gate.outputs.run == 'true'
+        id: tests
+        continue-on-error: true
+        run: python -m pytest -q
+
+      - name: Commit and push intentional changes
+        if: steps.gate.outputs.run == 'true'
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "XAUUSD EA Daily Agent"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No repository changes to publish."
+            exit 0
+          fi
+          git commit -m "Daily agent: advance one bounded milestone"
+          git push --set-upstream origin "${{ steps.branch.outputs.name }}"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request
+        if: steps.gate.outputs.run == 'true' && steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="Automated bounded daily milestone using ${{ steps.gate.outputs.model }}.\n\nWorkflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\nTest outcome: ${{ steps.tests.outcome }}\nTrial end date: ${TRIAL_END_DATE_UTC}\n\nReview all changes before merge. This workflow never auto-merges."
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            gh pr create \
+              --base main \
+              --head "${{ steps.branch.outputs.name }}" \
+              --title "Daily agent: bounded XAUUSD EA milestone" \
+              --body "$body"
+          else
+            gh pr create \
+              --draft \
+              --base main \
+              --head "${{ steps.branch.outputs.name }}" \
+              --title "Daily agent: milestone needs test fixes" \
+              --body "$body"
+          fi
