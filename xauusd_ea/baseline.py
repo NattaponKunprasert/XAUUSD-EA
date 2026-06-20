@@ -36,11 +36,17 @@ class BrokerProfile:
         return self.tick_value_usd / self.tick_size
 
     def quantize_lot(self, raw_lot: float) -> float:
-        if raw_lot <= 0:
+        """Risk-safe lot quantization for XM Micro volumes.
+
+        Never increase requested risk: values below the broker minimum return 0,
+        values above the maximum are capped, and valid values are floored to the
+        nearest lot step rather than rounded upward.
+        """
+        if raw_lot < self.min_lot:
             return 0.0
-        steps = round((raw_lot - self.min_lot) / self.lot_step)
+        capped = min(raw_lot, self.max_lot)
+        steps = int((capped - self.min_lot) / self.lot_step + 1e-12)
         lot = self.min_lot + steps * self.lot_step
-        lot = max(self.min_lot, min(self.max_lot, lot))
         return round(lot, 2)
 
 
@@ -128,17 +134,24 @@ def run_m15_baseline_smoke(df: pd.DataFrame, broker: BrokerProfile, config: dict
         row = data.iloc[i]
         prev = data.iloc[i - 1]
         if position is None:
-            crossed_up = prev["ema_fast"] <= prev["ema_slow"] and row["ema_fast"] > row["ema_slow"]
-            if not crossed_up or pd.isna(row["atr_14"]):
+            signal_bar = prev
+            signal_prev = data.iloc[i - 2]
+            crossed_up = signal_prev["ema_fast"] <= signal_prev["ema_slow"] and signal_bar["ema_fast"] > signal_bar["ema_slow"]
+            if not crossed_up or pd.isna(signal_bar["atr_14"]):
                 continue
-            entry_ask = entry_ask_from_bid_close(row["close"], broker.spread_baseline_price)
-            risk_distance = row["atr_14"] * config["atr_multiplier"]
+            lot = broker.quantize_lot(config["lot"])
+            if lot == 0.0:
+                continue
+            entry_ask = entry_ask_from_bid_close(row["open"], broker.spread_baseline_price)
+            risk_distance = signal_bar["atr_14"] * config["atr_multiplier"]
             position = {
+                "signal_time": signal_bar.name,
                 "entry_time": row.name,
                 "entry_ask": entry_ask,
+                "entry_bid_open": row["open"],
                 "stop_bid": entry_ask - risk_distance,
                 "target_bid": entry_ask + risk_distance * config["rr"],
-                "lot": broker.quantize_lot(config["lot"]),
+                "lot": lot,
             }
             continue
 
