@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Prepare and verify a small M15-only baseline that exercises the active backtest implementation without invoking the full parameter grid.
+Prepare and verify a small M15-only baseline that exercises the active backtest implementation, including deterministic conservative intrabar exits, without invoking the full parameter grid.
 
 ## Verified inputs
 
@@ -17,6 +17,7 @@ Prepare and verify a small M15-only baseline that exercises the active backtest 
 - H4 rows: 5,352
 - No missing OHLCV cells, duplicate timestamps, backward timestamps, invalid OHLC relationships, or nonpositive volume were found
 - M30, H1, and H4 aggregate exactly from M15, including volume
+- The M15 smoke path now has deterministic long-only intrabar exit rules: gap-through-open exits at the open Bid, and same-bar stop/target conflicts resolve conservatively to the stop
 
 ## Broker facts
 

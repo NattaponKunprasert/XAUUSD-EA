@@ -1,17 +1,53 @@
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
+import xauusd_ea.baseline as baseline
 from xauusd_ea.baseline import (
     entry_ask_from_bid_close,
     fixed_m15_smoke_configs,
     load_broker_profile,
     load_mt5_csv,
     pnl_usd,
+    resolve_long_exit_bid,
     run_m15_baseline_smoke,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _make_synthetic_smoke_df(*, entry_bar: dict, post_entry_bar: dict | None = None) -> pd.DataFrame:
+    times = pd.date_range("2023-01-03 00:00", periods=29, freq="15min")
+    df = pd.DataFrame(
+        {
+            "open": [100.0] * len(times),
+            "high": [100.2] * len(times),
+            "low": [99.8] * len(times),
+            "close": [100.0] * len(times),
+            "volume": [1.0] * len(times),
+        },
+        index=times,
+    )
+    for key, value in entry_bar.items():
+        df.loc[times[27], key] = value
+    if post_entry_bar is not None:
+        for key, value in post_entry_bar.items():
+            df.loc[times[28], key] = value
+    return df
+
+
+def _stub_baseline_indicators(frame: pd.DataFrame) -> pd.DataFrame:
+    out = frame.copy()
+    out["ema_fast"] = 99.0
+    out["ema_slow"] = 100.0
+    out["atr_14"] = 1.0
+    out.iloc[25, out.columns.get_loc("ema_fast")] = 99.0
+    out.iloc[25, out.columns.get_loc("ema_slow")] = 100.0
+    out.iloc[26, out.columns.get_loc("ema_fast")] = 101.0
+    out.iloc[26, out.columns.get_loc("ema_slow")] = 100.0
+    out.iloc[26, out.columns.get_loc("atr_14")] = 1.0
+    return out
 
 
 def test_broker_profile_uses_xm_micro_gold_math():
@@ -64,3 +100,66 @@ def test_smoke_entries_execute_on_next_bar_open_plus_spread():
     expected_entry_ask = first["entry_bid_open"] + broker.spread_baseline_price
     assert first["entry_ask"] == pytest.approx(expected_entry_ask)
     assert first["entry_ask"] == pytest.approx(1841.6311428571428)
+
+
+def test_resolve_long_exit_bid_is_gap_aware_and_conservative():
+    exit_bid, reason = resolve_long_exit_bid(
+        bar_open_bid=97.50,
+        bar_high_bid=99.50,
+        bar_low_bid=97.00,
+        stop_bid=98.50,
+        target_bid=101.50,
+    )
+    assert reason == "SL"
+    assert exit_bid == pytest.approx(97.50)
+
+    exit_bid, reason = resolve_long_exit_bid(
+        bar_open_bid=100.00,
+        bar_high_bid=102.00,
+        bar_low_bid=98.00,
+        stop_bid=98.50,
+        target_bid=101.50,
+    )
+    assert reason == "SL"
+    assert exit_bid == pytest.approx(98.50)
+
+
+def test_smoke_trade_can_exit_on_entry_bar(monkeypatch: pytest.MonkeyPatch):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(entry_bar={"open": 100.0, "high": 102.0, "low": 100.0, "close": 101.0})
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {"name": "entry_bar_tp", "atr_multiplier": 1.0, "rr": 1.0, "lot": 0.10, "max_trades": 1},
+    )
+
+    assert result["trade_count"] == 1
+    trade = result["trades"][0]
+    assert trade["entry_time"] == trade["exit_time"] == df.index[27]
+    assert trade["reason"] == "TP"
+    assert trade["exit_bid"] == pytest.approx(trade["target_bid"])
+
+
+def test_smoke_trade_uses_gap_open_when_bar_opens_below_stop(monkeypatch: pytest.MonkeyPatch):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        entry_bar={"open": 100.0, "high": 101.0, "low": 100.0, "close": 100.5},
+        post_entry_bar={"open": 99.0, "high": 99.2, "low": 98.8, "close": 99.1},
+    )
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {"name": "gap_stop", "atr_multiplier": 1.0, "rr": 1.0, "lot": 0.10, "max_trades": 1},
+    )
+
+    assert result["trade_count"] == 1
+    trade = result["trades"][0]
+    assert trade["entry_time"] == df.index[27]
+    assert trade["exit_time"] == df.index[28]
+    assert trade["reason"] == "SL"
+    assert trade["stop_bid"] > trade["exit_bid"]
+    assert trade["exit_bid"] == pytest.approx(99.0)
