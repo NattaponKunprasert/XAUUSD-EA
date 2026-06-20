@@ -30,7 +30,7 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Enforce trial window and one-open-PR gate
+      - name: Enforce trial window, choose model, and gate open PRs
         id: gate
         shell: bash
         run: |
@@ -41,6 +41,15 @@ jobs:
             echo "The one-month trial ended on $TRIAL_END_DATE_UTC; skipping before API use."
             exit 0
           fi
+
+          # The workflow runs at 02:00 UTC, so the UTC weekday matches the Bangkok weekday.
+          if [ "$(date -u +%u)" = "7" ]; then
+            model="gpt-5.5"
+          else
+            model="gpt-5.4"
+          fi
+          echo "model=$model" >> "$GITHUB_OUTPUT"
+          echo "Selected model: $model"
 
           count="$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("codex/daily-"))] | length')"
           if [ "$count" -gt 0 ]; then
@@ -78,7 +87,7 @@ jobs:
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt-file: .github/codex/prompts/daily-builder.md
-          model: gpt-5.5
+          model: ${{ steps.gate.outputs.model }}
           effort: medium
           sandbox: workspace-write
           safety-strategy: drop-sudo
@@ -112,7 +121,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          body="Automated bounded daily milestone using gpt-5.5.\n\nWorkflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\nTest outcome: ${{ steps.tests.outcome }}\nTrial end date: ${TRIAL_END_DATE_UTC}\n\nReview all changes before merge. This workflow never auto-merges."
+          body="Automated bounded daily milestone using ${{ steps.gate.outputs.model }}.\n\nWorkflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\nTest outcome: ${{ steps.tests.outcome }}\nTrial end date: ${TRIAL_END_DATE_UTC}\n\nReview all changes before merge. This workflow never auto-merges."
           if [ "${{ steps.tests.outcome }}" = "success" ]; then
             gh pr create \
               --base main \
