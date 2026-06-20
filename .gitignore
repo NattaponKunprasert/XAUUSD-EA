@@ -1,0 +1,26 @@
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.venv/
+venv/
+
+# Local Codex configuration and generated research outputs
+.codex/
+XAUUSD_fulltest_batches/
+outputs/
+artifacts/
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
