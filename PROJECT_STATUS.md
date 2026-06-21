@@ -32,6 +32,7 @@ Prepare and verify a small M15-only baseline that exercises the active backtest 
 - Commission: 0
 - Fee: 0
 - Swap is charged separately; Wednesday is the triple-swap day
+- Current Python backtests model swap rollover at server-clock midnight and skip Saturday/Sunday midnights; the exact broker rollover cutover is an assumption until explicitly verified or configured
 
 See `config/xm_micro_gold.json` for the machine-readable snapshot and bounded research variables.
 

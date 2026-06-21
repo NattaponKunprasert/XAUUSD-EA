@@ -5,6 +5,7 @@ import pytest
 
 import xauusd_ea.baseline as baseline
 from xauusd_ea.baseline import (
+    broker_server_rollovers_crossed,
     entry_ask_from_bid_close,
     fixed_m15_smoke_configs,
     load_broker_profile,
@@ -20,9 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _make_synthetic_smoke_df(
-    *, entry_bar: dict, post_entry_bar: dict | None = None
+    *,
+    entry_bar: dict,
+    post_entry_bar: dict | None = None,
+    start: str = "2023-01-03 00:00",
+    periods: int = 29,
 ) -> pd.DataFrame:
-    times = pd.date_range("2023-01-03 00:00", periods=29, freq="15min")
+    times = pd.date_range(start, periods=periods, freq="15min")
     df = pd.DataFrame(
         {
             "open": [100.0] * len(times),
@@ -111,6 +116,272 @@ def test_swap_points_use_micro_contract_size_and_wednesday_triple():
         lot=0.10, direction="long", broker=broker, rollover_timestamp=wednesday_rollover
     ) == pytest.approx(-0.28017)
 
+
+def test_broker_server_rollovers_crossed_uses_modeled_server_midnights():
+    assert broker_server_rollovers_crossed(
+        pd.Timestamp("2023-01-02 23:45"), pd.Timestamp("2023-01-03 00:00")
+    ) == [pd.Timestamp("2023-01-03 00:00")]
+    assert broker_server_rollovers_crossed(
+        pd.Timestamp("2023-01-02 23:45"), pd.Timestamp("2023-01-03 00:15")
+    ) == [pd.Timestamp("2023-01-03 00:00")]
+    assert broker_server_rollovers_crossed(
+        pd.Timestamp("2023-01-03 00:00"), pd.Timestamp("2023-01-03 00:15")
+    ) == []
+
+
+def test_broker_server_rollovers_skip_weekend_midnights():
+    assert broker_server_rollovers_crossed(
+        pd.Timestamp("2023-01-06 23:45"), pd.Timestamp("2023-01-09 00:00")
+    ) == [pd.Timestamp("2023-01-09 00:00")]
+
+
+def test_smoke_friday_to_monday_market_gap_skips_weekend_swaps(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    times = list(pd.date_range("2023-01-06 17:00", periods=28, freq="15min"))
+    times.append(pd.Timestamp("2023-01-09 00:00"))
+    df = pd.DataFrame(
+        {
+            "open": [100.0] * len(times),
+            "high": [101.0] * len(times),
+            "low": [100.0] * len(times),
+            "close": [100.8] * len(times),
+            "volume": [1.0] * len(times),
+        },
+        index=pd.DatetimeIndex(times),
+    )
+    df.iloc[28, df.columns.get_loc("open")] = 100.9
+    df.iloc[28, df.columns.get_loc("high")] = 102.0
+    df.iloc[28, df.columns.get_loc("low")] = 100.8
+    df.iloc[28, df.columns.get_loc("close")] = 101.8
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "friday_monday_gap",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    trade = result["trades"][0]
+    expected_swap = swap_usd(
+        lot=0.10,
+        direction="long",
+        broker=broker,
+        rollover_timestamp=pd.Timestamp("2023-01-09 00:00"),
+    )
+    assert trade["entry_time"] == pd.Timestamp("2023-01-06 23:45")
+    assert trade["exit_time"] == pd.Timestamp("2023-01-09 00:00")
+    assert trade["swap"] == pytest.approx(expected_swap)
+    assert trade["pnl"] == pytest.approx(trade["price_pnl"] + expected_swap)
+    assert result["final_capital"] == pytest.approx(1000.0 + trade["pnl"])
+
+
+def test_smoke_multi_day_hold_charges_each_eligible_rollover_once(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    times = list(pd.date_range("2023-01-03 17:00", periods=28, freq="15min"))
+    times.extend(
+        [
+            pd.Timestamp("2023-01-04 00:00"),
+            pd.Timestamp("2023-01-05 00:00"),
+            pd.Timestamp("2023-01-06 00:00"),
+        ]
+    )
+    df = pd.DataFrame(
+        {
+            "open": [100.0] * len(times),
+            "high": [101.0] * len(times),
+            "low": [100.0] * len(times),
+            "close": [100.8] * len(times),
+            "volume": [1.0] * len(times),
+        },
+        index=pd.DatetimeIndex(times),
+    )
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "multi_day_hold",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    charged_rollovers = broker_server_rollovers_crossed(
+        pd.Timestamp("2023-01-03 23:45"), pd.Timestamp("2023-01-06 00:00")
+    )
+    expected_swap = sum(
+        swap_usd(
+            lot=0.10,
+            direction="long",
+            broker=broker,
+            rollover_timestamp=rollover,
+        )
+        for rollover in charged_rollovers
+    )
+
+    assert charged_rollovers == [
+        pd.Timestamp("2023-01-04 00:00"),
+        pd.Timestamp("2023-01-05 00:00"),
+        pd.Timestamp("2023-01-06 00:00"),
+    ]
+    assert result["trade_count"] == 0
+    assert result["final_capital"] == pytest.approx(1000.0 + expected_swap)
+    assert result["equity_curve"][-1] == pytest.approx(
+        1000.0
+        + expected_swap
+        + (100.8 - (100.0 + broker.spread_baseline_price))
+        * 0.10
+        * broker.contract_size
+    )
+
+def test_smoke_applies_one_normal_overnight_rollover_swap(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        start="2023-01-02 17:00",
+        entry_bar={"open": 100.0, "high": 101.0, "low": 100.0, "close": 100.8},
+        post_entry_bar={"open": 100.9, "high": 102.0, "low": 100.8, "close": 101.8},
+    )
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "normal_swap",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    trade = result["trades"][0]
+    expected_swap = swap_usd(
+        lot=0.10,
+        direction="long",
+        broker=broker,
+        rollover_timestamp=pd.Timestamp("2023-01-03 00:00"),
+    )
+    assert trade["entry_time"] == pd.Timestamp("2023-01-02 23:45")
+    assert trade["exit_time"] == pd.Timestamp("2023-01-03 00:00")
+    assert trade["swap"] == pytest.approx(expected_swap)
+    assert trade["pnl"] == pytest.approx(trade["price_pnl"] + expected_swap)
+    assert result["final_capital"] == pytest.approx(1000.0 + trade["pnl"])
+    assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
+
+
+def test_smoke_applies_wednesday_triple_rollover_swap(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        start="2023-01-03 17:00",
+        entry_bar={"open": 100.0, "high": 101.0, "low": 100.0, "close": 100.8},
+        post_entry_bar={"open": 100.9, "high": 102.0, "low": 100.8, "close": 101.8},
+    )
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "triple_swap",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    trade = result["trades"][0]
+    assert trade["entry_time"] == pd.Timestamp("2023-01-03 23:45")
+    assert trade["exit_time"] == pd.Timestamp("2023-01-04 00:00")
+    assert trade["swap"] == pytest.approx(-0.28017)
+    assert trade["pnl"] == pytest.approx(trade["price_pnl"] + trade["swap"])
+    assert result["final_capital"] == pytest.approx(1000.0 + trade["pnl"])
+
+
+def test_smoke_does_not_apply_swap_without_crossed_rollover(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        start="2023-01-02 16:00",
+        entry_bar={"open": 100.0, "high": 101.0, "low": 100.0, "close": 100.8},
+        post_entry_bar={"open": 100.9, "high": 102.0, "low": 100.8, "close": 101.8},
+    )
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "no_swap",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    trade = result["trades"][0]
+    assert trade["entry_time"] == pd.Timestamp("2023-01-02 22:45")
+    assert trade["exit_time"] == pd.Timestamp("2023-01-02 23:00")
+    assert trade["swap"] == pytest.approx(0.0)
+    assert trade["pnl"] == pytest.approx(trade["price_pnl"])
+    assert result["final_capital"] == pytest.approx(1000.0 + trade["pnl"])
+
+
+def test_open_smoke_position_books_swap_once_in_cash_and_equity(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        start="2023-01-02 17:00",
+        periods=30,
+        entry_bar={"open": 100.0, "high": 101.0, "low": 100.0, "close": 100.8},
+        post_entry_bar={"open": 100.9, "high": 101.0, "low": 100.8, "close": 101.0},
+    )
+    df.iloc[29, df.columns.get_loc("open")] = 101.0
+    df.iloc[29, df.columns.get_loc("high")] = 101.2
+    df.iloc[29, df.columns.get_loc("low")] = 100.9
+    df.iloc[29, df.columns.get_loc("close")] = 101.1
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "open_swap_once",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    expected_swap = -0.09339
+    entry_ask = 100.0 + broker.spread_baseline_price
+    assert result["trade_count"] == 0
+    assert result["final_capital"] == pytest.approx(1000.0 + expected_swap)
+    assert result["equity_curve"][-1] == pytest.approx(
+        1000.0 + expected_swap + (101.1 - entry_ask) * 0.10 * broker.contract_size
+    )
 
 def test_m15_only_fixed_smoke_executes_closed_trades_without_full_grid():
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
