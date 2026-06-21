@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Prepare and verify a small M15-only baseline that exercises the active backtest implementation, including deterministic conservative intrabar exits, without invoking the full parameter grid.
+Prepare and verify a small M15-only baseline that exercises the active backtest implementation, including deterministic conservative intrabar exits and equity accounting, without invoking the full parameter grid.
 
 ## Verified inputs
 
@@ -18,6 +18,7 @@ Prepare and verify a small M15-only baseline that exercises the active backtest 
 - No missing OHLCV cells, duplicate timestamps, backward timestamps, invalid OHLC relationships, or nonpositive volume were found
 - M30, H1, and H4 aggregate exactly from M15, including volume
 - The M15 smoke path now has deterministic long-only intrabar exit rules: gap-through-open exits at the open Bid, and same-bar stop/target conflicts resolve conservatively to the stop
+- The M15 smoke path now returns a mark-to-market equity curve using realized cash plus open long PnL marked to the Bid close with XM Micro contract size
 
 ## Broker facts
 

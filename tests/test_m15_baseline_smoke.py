@@ -9,6 +9,7 @@ from xauusd_ea.baseline import (
     fixed_m15_smoke_configs,
     load_broker_profile,
     load_mt5_csv,
+    mark_to_market_long_equity,
     pnl_usd,
     resolve_long_exit_bid,
     run_m15_baseline_smoke,
@@ -78,15 +79,23 @@ def test_bid_ask_entry_and_contract_size_pnl_math():
     assert pnl_usd(entry_ask=2000.50, exit_bid=2001.50, lot=0.10, broker=broker) == pytest.approx(0.10)
 
 
+def test_mark_to_market_long_equity_uses_bid_close_and_micro_contract_size():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    position = {"entry_ask": 2000.50, "lot": 0.10}
+    assert mark_to_market_long_equity(1000.0, None, 2001.50, broker) == pytest.approx(1000.0)
+    assert mark_to_market_long_equity(1000.0, position, 2001.50, broker) == pytest.approx(1000.10)
+
+
 def test_m15_only_fixed_smoke_executes_closed_trades_without_full_grid():
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
     df = load_mt5_csv(ROOT / "XAUUSD_M15.csv").iloc[:5000]
     result = run_m15_baseline_smoke(df, broker, fixed_m15_smoke_configs()[0])
-    assert set(result) == {"trades", "final_capital", "trade_count"}
+    assert set(result) == {"trades", "final_capital", "trade_count", "equity_curve"}
     assert result["trade_count"] == 3
     assert [trade["reason"] for trade in result["trades"]] == ["TP", "SL", "SL"]
     assert result["final_capital"] == pytest.approx(999.6668571428571)
     assert result["final_capital"] == pytest.approx(1000.0 + sum(t["pnl"] for t in result["trades"]))
+    assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
 
 
 def test_smoke_entries_execute_on_next_bar_open_plus_spread():
@@ -163,3 +172,28 @@ def test_smoke_trade_uses_gap_open_when_bar_opens_below_stop(monkeypatch: pytest
     assert trade["reason"] == "SL"
     assert trade["stop_bid"] > trade["exit_bid"]
     assert trade["exit_bid"] == pytest.approx(99.0)
+
+
+def test_smoke_equity_marks_open_position_to_bid_close(monkeypatch: pytest.MonkeyPatch):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        entry_bar={"open": 100.0, "high": 101.0, "low": 100.0, "close": 100.80},
+        post_entry_bar={"open": 100.90, "high": 101.20, "low": 100.80, "close": 101.00},
+    )
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {"name": "open_equity", "atr_multiplier": 1.0, "rr": 1.0, "lot": 0.10, "max_trades": 1},
+    )
+
+    assert result["trade_count"] == 0
+    assert result["final_capital"] == pytest.approx(1000.0)
+    assert len(result["equity_curve"]) == 2
+    assert result["equity_curve"][0] == pytest.approx(
+        1000.0 + (100.80 - (100.0 + broker.spread_baseline_price)) * 0.10 * broker.contract_size
+    )
+    assert result["equity_curve"][-1] == pytest.approx(
+        1000.0 + (101.00 - (100.0 + broker.spread_baseline_price)) * 0.10 * broker.contract_size
+    )
