@@ -112,6 +112,13 @@ def pnl_usd(entry_ask: float, exit_bid: float, lot: float, broker: BrokerProfile
     return gross - broker.commission_per_lot_round_turn_usd * lot - broker.fee_per_lot_round_turn_usd * lot
 
 
+def mark_to_market_long_equity(cash: float, position: dict | None, mark_bid: float, broker: BrokerProfile) -> float:
+    """Account equity as cash plus open long PnL marked to a Bid price."""
+    if position is None:
+        return float(cash)
+    return float(cash + pnl_usd(position["entry_ask"], mark_bid, position["lot"], broker))
+
+
 def resolve_long_exit_bid(
     *,
     bar_open_bid: float,
@@ -156,6 +163,7 @@ def run_m15_baseline_smoke(df: pd.DataFrame, broker: BrokerProfile, config: dict
     """
     data = add_baseline_indicators(df)
     capital = broker.initial_capital_usd
+    equity_curve: list[float] = []
     trades: list[dict] = []
     position = None
 
@@ -166,22 +174,22 @@ def run_m15_baseline_smoke(df: pd.DataFrame, broker: BrokerProfile, config: dict
             signal_bar = prev
             signal_prev = data.iloc[i - 2]
             crossed_up = signal_prev["ema_fast"] <= signal_prev["ema_slow"] and signal_bar["ema_fast"] > signal_bar["ema_slow"]
-            if not crossed_up or pd.isna(signal_bar["atr_14"]):
-                continue
-            lot = broker.quantize_lot(config["lot"])
-            if lot == 0.0:
-                continue
-            entry_ask = entry_ask_from_bid_close(row["open"], broker.spread_baseline_price)
-            risk_distance = signal_bar["atr_14"] * config["atr_multiplier"]
-            position = {
-                "signal_time": signal_bar.name,
-                "entry_time": row.name,
-                "entry_ask": entry_ask,
-                "entry_bid_open": row["open"],
-                "stop_bid": entry_ask - risk_distance,
-                "target_bid": entry_ask + risk_distance * config["rr"],
-                "lot": lot,
-            }
+            if crossed_up and not pd.isna(signal_bar["atr_14"]):
+                lot = broker.quantize_lot(config["lot"])
+                if lot != 0.0:
+                    entry_ask = entry_ask_from_bid_close(row["open"], broker.spread_baseline_price)
+                    risk_distance = signal_bar["atr_14"] * config["atr_multiplier"]
+                    position = {
+                        "signal_time": signal_bar.name,
+                        "entry_time": row.name,
+                        "entry_ask": entry_ask,
+                        "entry_bid_open": row["open"],
+                        "stop_bid": entry_ask - risk_distance,
+                        "target_bid": entry_ask + risk_distance * config["rr"],
+                        "lot": lot,
+                    }
+
+        if position is not None:
             exit_bid, exit_reason = resolve_long_exit_bid(
                 bar_open_bid=row["open"],
                 bar_high_bid=row["high"],
@@ -194,24 +202,9 @@ def run_m15_baseline_smoke(df: pd.DataFrame, broker: BrokerProfile, config: dict
                 capital += trade_pnl
                 trades.append({**position, "exit_time": row.name, "exit_bid": exit_bid, "reason": exit_reason, "pnl": trade_pnl})
                 position = None
-                if len(trades) >= config["max_trades"]:
-                    break
-            continue
 
-        exit_bid, exit_reason = resolve_long_exit_bid(
-            bar_open_bid=row["open"],
-            bar_high_bid=row["high"],
-            bar_low_bid=row["low"],
-            stop_bid=position["stop_bid"],
-            target_bid=position["target_bid"],
-        )
+        equity_curve.append(mark_to_market_long_equity(capital, position, row["close"], broker))
+        if len(trades) >= config["max_trades"]:
+            break
 
-        if exit_reason:
-            trade_pnl = pnl_usd(position["entry_ask"], exit_bid, position["lot"], broker)
-            capital += trade_pnl
-            trades.append({**position, "exit_time": row.name, "exit_bid": exit_bid, "reason": exit_reason, "pnl": trade_pnl})
-            position = None
-            if len(trades) >= config["max_trades"]:
-                break
-
-    return {"trades": trades, "final_capital": capital, "trade_count": len(trades)}
+    return {"trades": trades, "final_capital": capital, "trade_count": len(trades), "equity_curve": equity_curve}
