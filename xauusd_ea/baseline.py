@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 import pandas as pd
 
-
 REQUIRED_COLUMNS = ("open", "high", "low", "close", "volume")
 
 
@@ -30,6 +29,10 @@ class BrokerProfile:
     max_lot: float
     lot_step: float
     initial_capital_usd: float
+    swap_type: str
+    swap_long_points: float
+    swap_short_points: float
+    triple_swap_day: str
 
     @property
     def value_per_price_unit_per_lot(self) -> float:
@@ -60,19 +63,27 @@ def load_broker_profile(path: str | Path) -> BrokerProfile:
         tick_value_usd=float(cfg["tick_value_usd"]),
         point=float(cfg["point"]),
         spread_baseline_price=float(cfg["spread_baseline_price"]),
-        commission_per_lot_round_turn_usd=float(cfg["commission_per_lot_round_turn_usd"]),
+        commission_per_lot_round_turn_usd=float(
+            cfg["commission_per_lot_round_turn_usd"]
+        ),
         fee_per_lot_round_turn_usd=float(cfg["fee_per_lot_round_turn_usd"]),
         min_lot=float(cfg["min_lot"]),
         max_lot=float(cfg["max_lot"]),
         lot_step=float(cfg["lot_step"]),
         initial_capital_usd=float(cfg["initial_capital_usd"]),
+        swap_type=str(cfg["swap_type"]),
+        swap_long_points=float(cfg["swap_long_points_snapshot"]),
+        swap_short_points=float(cfg["swap_short_points_snapshot"]),
+        triple_swap_day=str(cfg["triple_swap_day"]),
     )
 
 
 def load_mt5_csv(filepath: str | Path) -> pd.DataFrame:
     """Load the intentional mixed-delimiter MT5 OHLCV export format."""
     raw = pd.read_csv(filepath, sep=r"[\t,;|]", engine="python")
-    raw.columns = [str(c).strip().replace("<", "").replace(">", "") for c in raw.columns]
+    raw.columns = [
+        str(c).strip().replace("<", "").replace(">", "") for c in raw.columns
+    ]
     rename = {c: c.lower() for c in raw.columns}
     df = raw.rename(columns=rename)
     if "time" not in df.columns:
@@ -82,7 +93,11 @@ def load_mt5_csv(filepath: str | Path) -> pd.DataFrame:
         if col not in df.columns:
             raise ValueError(f"Missing required column {col!r} in {filepath}")
         df[col] = pd.to_numeric(df[col], errors="coerce")
-    df = df.dropna(subset=("time", *REQUIRED_COLUMNS)).drop_duplicates("time").sort_values("time")
+    df = (
+        df.dropna(subset=("time", *REQUIRED_COLUMNS))
+        .drop_duplicates("time")
+        .sort_values("time")
+    )
     return df.set_index("time")
 
 
@@ -92,7 +107,11 @@ def add_baseline_indicators(df: pd.DataFrame) -> pd.DataFrame:
     out["ema_slow"] = out["close"].ewm(span=26, adjust=False).mean()
     prev_close = out["close"].shift(1)
     tr = pd.concat(
-        [out["high"] - out["low"], (out["high"] - prev_close).abs(), (out["low"] - prev_close).abs()],
+        [
+            out["high"] - out["low"],
+            (out["high"] - prev_close).abs(),
+            (out["low"] - prev_close).abs(),
+        ],
         axis=1,
     ).max(axis=1)
     out["atr_14"] = tr.rolling(14).mean()
@@ -107,16 +126,26 @@ def exit_bid_for_long(bid_price: float) -> float:
     return bid_price
 
 
-def pnl_usd(entry_ask: float, exit_bid: float, lot: float, broker: BrokerProfile) -> float:
+def pnl_usd(
+    entry_ask: float, exit_bid: float, lot: float, broker: BrokerProfile
+) -> float:
     gross = (exit_bid - entry_ask) * lot * broker.contract_size
-    return gross - broker.commission_per_lot_round_turn_usd * lot - broker.fee_per_lot_round_turn_usd * lot
+    return (
+        gross
+        - broker.commission_per_lot_round_turn_usd * lot
+        - broker.fee_per_lot_round_turn_usd * lot
+    )
 
 
-def mark_to_market_long_equity(cash: float, position: dict | None, mark_bid: float, broker: BrokerProfile) -> float:
+def mark_to_market_long_equity(
+    cash: float, position: dict | None, mark_bid: float, broker: BrokerProfile
+) -> float:
     """Account equity as cash plus open long PnL marked to a Bid price."""
     if position is None:
         return float(cash)
-    return float(cash + pnl_usd(position["entry_ask"], mark_bid, position["lot"], broker))
+    return float(
+        cash + pnl_usd(position["entry_ask"], mark_bid, position["lot"], broker)
+    )
 
 
 def resolve_long_exit_bid(
@@ -148,14 +177,52 @@ def resolve_long_exit_bid(
     return None, None
 
 
+def swap_usd(
+    *,
+    lot: float,
+    direction: str,
+    broker: BrokerProfile,
+    rollover_timestamp: pd.Timestamp,
+) -> float:
+    """Return the XM Micro overnight swap charge/credit for one rollover.
+
+    The verified broker snapshot stores swap as points.  For GOLDmicro one
+    point is 0.01 price units and one lot has contract size 1, so the USD
+    value is points * point * lot * contract_size.  The configured Wednesday
+    rollover is charged at three times the normal daily amount.
+    """
+    if broker.swap_type != "points":
+        raise ValueError(
+            f"Unsupported swap_type {broker.swap_type!r}; expected 'points'"
+        )
+    if direction not in {"long", "short"}:
+        raise ValueError(
+            f"Unsupported direction {direction!r}; expected 'long' or 'short'"
+        )
+
+    swap_points = (
+        broker.swap_long_points if direction == "long" else broker.swap_short_points
+    )
+    multiplier = 3 if rollover_timestamp.day_name() == broker.triple_swap_day else 1
+    return swap_points * broker.point * lot * broker.contract_size * multiplier
+
+
 def fixed_m15_smoke_configs() -> list[dict]:
     """Tiny fixed configuration set; not an optimization grid."""
     return [
-        {"name": "ema12_26_atr_rr1", "atr_multiplier": 1.0, "rr": 1.0, "lot": 0.10, "max_trades": 3},
+        {
+            "name": "ema12_26_atr_rr1",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 3,
+        },
     ]
 
 
-def run_m15_baseline_smoke(df: pd.DataFrame, broker: BrokerProfile, config: dict) -> dict:
+def run_m15_baseline_smoke(
+    df: pd.DataFrame, broker: BrokerProfile, config: dict
+) -> dict:
     """Run one deterministic long-only smoke path using Bid OHLC and Ask entries.
 
     The function purposely uses one position at a time, fixed lot, no swap, no
@@ -173,11 +240,16 @@ def run_m15_baseline_smoke(df: pd.DataFrame, broker: BrokerProfile, config: dict
         if position is None:
             signal_bar = prev
             signal_prev = data.iloc[i - 2]
-            crossed_up = signal_prev["ema_fast"] <= signal_prev["ema_slow"] and signal_bar["ema_fast"] > signal_bar["ema_slow"]
+            crossed_up = (
+                signal_prev["ema_fast"] <= signal_prev["ema_slow"]
+                and signal_bar["ema_fast"] > signal_bar["ema_slow"]
+            )
             if crossed_up and not pd.isna(signal_bar["atr_14"]):
                 lot = broker.quantize_lot(config["lot"])
                 if lot != 0.0:
-                    entry_ask = entry_ask_from_bid_close(row["open"], broker.spread_baseline_price)
+                    entry_ask = entry_ask_from_bid_close(
+                        row["open"], broker.spread_baseline_price
+                    )
                     risk_distance = signal_bar["atr_14"] * config["atr_multiplier"]
                     position = {
                         "signal_time": signal_bar.name,
@@ -198,13 +270,30 @@ def run_m15_baseline_smoke(df: pd.DataFrame, broker: BrokerProfile, config: dict
                 target_bid=position["target_bid"],
             )
             if exit_reason:
-                trade_pnl = pnl_usd(position["entry_ask"], exit_bid, position["lot"], broker)
+                trade_pnl = pnl_usd(
+                    position["entry_ask"], exit_bid, position["lot"], broker
+                )
                 capital += trade_pnl
-                trades.append({**position, "exit_time": row.name, "exit_bid": exit_bid, "reason": exit_reason, "pnl": trade_pnl})
+                trades.append(
+                    {
+                        **position,
+                        "exit_time": row.name,
+                        "exit_bid": exit_bid,
+                        "reason": exit_reason,
+                        "pnl": trade_pnl,
+                    }
+                )
                 position = None
 
-        equity_curve.append(mark_to_market_long_equity(capital, position, row["close"], broker))
+        equity_curve.append(
+            mark_to_market_long_equity(capital, position, row["close"], broker)
+        )
         if len(trades) >= config["max_trades"]:
             break
 
-    return {"trades": trades, "final_capital": capital, "trade_count": len(trades), "equity_curve": equity_curve}
+    return {
+        "trades": trades,
+        "final_capital": capital,
+        "trade_count": len(trades),
+        "equity_curve": equity_curve,
+    }

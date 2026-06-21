@@ -13,12 +13,15 @@ from xauusd_ea.baseline import (
     pnl_usd,
     resolve_long_exit_bid,
     run_m15_baseline_smoke,
+    swap_usd,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _make_synthetic_smoke_df(*, entry_bar: dict, post_entry_bar: dict | None = None) -> pd.DataFrame:
+def _make_synthetic_smoke_df(
+    *, entry_bar: dict, post_entry_bar: dict | None = None
+) -> pd.DataFrame:
     times = pd.date_range("2023-01-03 00:00", periods=29, freq="15min")
     df = pd.DataFrame(
         {
@@ -76,14 +79,37 @@ def test_bid_ask_entry_and_contract_size_pnl_math():
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
     entry_ask = entry_ask_from_bid_close(2000.00, broker.spread_baseline_price)
     assert entry_ask == pytest.approx(2000.5511428571428)
-    assert pnl_usd(entry_ask=2000.50, exit_bid=2001.50, lot=0.10, broker=broker) == pytest.approx(0.10)
+    assert pnl_usd(
+        entry_ask=2000.50, exit_bid=2001.50, lot=0.10, broker=broker
+    ) == pytest.approx(0.10)
 
 
 def test_mark_to_market_long_equity_uses_bid_close_and_micro_contract_size():
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
     position = {"entry_ask": 2000.50, "lot": 0.10}
-    assert mark_to_market_long_equity(1000.0, None, 2001.50, broker) == pytest.approx(1000.0)
-    assert mark_to_market_long_equity(1000.0, position, 2001.50, broker) == pytest.approx(1000.10)
+    assert mark_to_market_long_equity(1000.0, None, 2001.50, broker) == pytest.approx(
+        1000.0
+    )
+    assert mark_to_market_long_equity(
+        1000.0, position, 2001.50, broker
+    ) == pytest.approx(1000.10)
+
+
+def test_swap_points_use_micro_contract_size_and_wednesday_triple():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+
+    monday_rollover = pd.Timestamp("2023-01-09 00:00")
+    wednesday_rollover = pd.Timestamp("2023-01-11 00:00")
+
+    assert swap_usd(
+        lot=0.10, direction="long", broker=broker, rollover_timestamp=monday_rollover
+    ) == pytest.approx(-0.09339)
+    assert swap_usd(
+        lot=0.10, direction="short", broker=broker, rollover_timestamp=monday_rollover
+    ) == pytest.approx(0.01074)
+    assert swap_usd(
+        lot=0.10, direction="long", broker=broker, rollover_timestamp=wednesday_rollover
+    ) == pytest.approx(-0.28017)
 
 
 def test_m15_only_fixed_smoke_executes_closed_trades_without_full_grid():
@@ -94,7 +120,9 @@ def test_m15_only_fixed_smoke_executes_closed_trades_without_full_grid():
     assert result["trade_count"] == 3
     assert [trade["reason"] for trade in result["trades"]] == ["TP", "SL", "SL"]
     assert result["final_capital"] == pytest.approx(999.6668571428571)
-    assert result["final_capital"] == pytest.approx(1000.0 + sum(t["pnl"] for t in result["trades"]))
+    assert result["final_capital"] == pytest.approx(
+        1000.0 + sum(t["pnl"] for t in result["trades"])
+    )
     assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
 
 
@@ -135,13 +163,21 @@ def test_resolve_long_exit_bid_is_gap_aware_and_conservative():
 
 def test_smoke_trade_can_exit_on_entry_bar(monkeypatch: pytest.MonkeyPatch):
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
-    df = _make_synthetic_smoke_df(entry_bar={"open": 100.0, "high": 102.0, "low": 100.0, "close": 101.0})
+    df = _make_synthetic_smoke_df(
+        entry_bar={"open": 100.0, "high": 102.0, "low": 100.0, "close": 101.0}
+    )
     monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
 
     result = run_m15_baseline_smoke(
         df,
         broker,
-        {"name": "entry_bar_tp", "atr_multiplier": 1.0, "rr": 1.0, "lot": 0.10, "max_trades": 1},
+        {
+            "name": "entry_bar_tp",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
     )
 
     assert result["trade_count"] == 1
@@ -151,7 +187,9 @@ def test_smoke_trade_can_exit_on_entry_bar(monkeypatch: pytest.MonkeyPatch):
     assert trade["exit_bid"] == pytest.approx(trade["target_bid"])
 
 
-def test_smoke_trade_uses_gap_open_when_bar_opens_below_stop(monkeypatch: pytest.MonkeyPatch):
+def test_smoke_trade_uses_gap_open_when_bar_opens_below_stop(
+    monkeypatch: pytest.MonkeyPatch,
+):
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
     df = _make_synthetic_smoke_df(
         entry_bar={"open": 100.0, "high": 101.0, "low": 100.0, "close": 100.5},
@@ -162,7 +200,13 @@ def test_smoke_trade_uses_gap_open_when_bar_opens_below_stop(monkeypatch: pytest
     result = run_m15_baseline_smoke(
         df,
         broker,
-        {"name": "gap_stop", "atr_multiplier": 1.0, "rr": 1.0, "lot": 0.10, "max_trades": 1},
+        {
+            "name": "gap_stop",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
     )
 
     assert result["trade_count"] == 1
@@ -185,15 +229,27 @@ def test_smoke_equity_marks_open_position_to_bid_close(monkeypatch: pytest.Monke
     result = run_m15_baseline_smoke(
         df,
         broker,
-        {"name": "open_equity", "atr_multiplier": 1.0, "rr": 1.0, "lot": 0.10, "max_trades": 1},
+        {
+            "name": "open_equity",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
     )
 
     assert result["trade_count"] == 0
     assert result["final_capital"] == pytest.approx(1000.0)
     assert len(result["equity_curve"]) == 2
     assert result["equity_curve"][0] == pytest.approx(
-        1000.0 + (100.80 - (100.0 + broker.spread_baseline_price)) * 0.10 * broker.contract_size
+        1000.0
+        + (100.80 - (100.0 + broker.spread_baseline_price))
+        * 0.10
+        * broker.contract_size
     )
     assert result["equity_curve"][-1] == pytest.approx(
-        1000.0 + (101.00 - (100.0 + broker.spread_baseline_price)) * 0.10 * broker.contract_size
+        1000.0
+        + (101.00 - (100.0 + broker.spread_baseline_price))
+        * 0.10
+        * broker.contract_size
     )
