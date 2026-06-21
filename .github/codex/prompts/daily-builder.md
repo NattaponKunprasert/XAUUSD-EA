@@ -8,7 +8,7 @@ Advance exactly one bounded engineering milestone toward one auditable XM Micro 
 
 - Work on one coherent problem group only.
 - Keep the change small and reviewable.
-- Do not merge pull requests or modify GitHub settings.
+- Do not push, merge pull requests, or modify GitHub settings; the workflow owns publication and merge policy.
 - Do not run or materialize the full optimization grid.
 - Do not start long optimization or walk-forward jobs unless the repository explicitly marks that bounded run as the next approved milestone.
 - Do not add multi-position optimization before concurrent-position accounting is implemented and tested.
@@ -24,6 +24,6 @@ Advance exactly one bounded engineering milestone toward one auditable XM Micro 
 4. Run the narrowest relevant tests. Run `python -m pytest -q` before finishing when feasible within the time limit.
 5. Update `PROJECT_STATUS.md` only when the verified project state or next milestone materially changes.
 6. Leave the working tree with only intentional source, test, configuration, or documentation changes. Do not commit generated outputs, caches, large optimization results, credentials, or screenshots.
-7. In the final response, report the chosen milestone, files changed, tests and results, correctness risks, blockers, and the recommended next milestone.
+7. Return the required structured final result. Set `merge_recommended` to `true` only when the change is complete, focused, tests pass, no blocker remains, and the risk is genuinely low. Otherwise set it to `false`. Use `risk_level: low` only for a small, deterministic, well-tested change that does not alter workflow security, broker facts, dependencies, datasets, optimization boundaries, or live-trading authorization.
 
-If a required decision depends on user risk preferences, real-money authorization, missing broker facts, MT5 access, or unavailable data, do not guess. Make no speculative strategy change; report the blocker and stop.
+If a required decision depends on user risk preferences, real-money authorization, missing broker facts, MT5 access, or unavailable data, do not guess. Make no speculative strategy change; report the blocker, set `merge_recommended` to `false`, and stop.
