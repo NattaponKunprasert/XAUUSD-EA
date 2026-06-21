@@ -140,7 +140,13 @@ def pnl_usd(
 def mark_to_market_long_equity(
     cash: float, position: dict | None, mark_bid: float, broker: BrokerProfile
 ) -> float:
-    """Account equity as cash plus open long PnL marked to a Bid price."""
+    """Account equity as cash plus open long PnL marked to a Bid price.
+
+    ``cash`` already includes any swap booked at crossed broker-server
+    rollover boundaries.  Open equity therefore adds only the current floating
+    price PnL, avoiding a second swap application while the position remains
+    open.
+    """
     if position is None:
         return float(cash)
     return float(
@@ -207,6 +213,54 @@ def swap_usd(
     return swap_points * broker.point * lot * broker.contract_size * multiplier
 
 
+
+def broker_server_rollovers_crossed(
+    start: pd.Timestamp, end: pd.Timestamp
+) -> list[pd.Timestamp]:
+    """Return broker-server midnight rollovers crossed in ``(start, end]``.
+
+    MT5 CSV/chart timestamps for this project are already in the verified
+    broker-server clock, so no timezone conversion is performed here.  A
+    position opened exactly at midnight has not crossed that rollover; a
+    position still open at a later midnight has crossed it exactly once.
+    """
+    start = pd.Timestamp(start)
+    end = pd.Timestamp(end)
+    if end <= start:
+        return []
+
+    next_rollover = start.normalize() + pd.Timedelta(days=1)
+    rollovers: list[pd.Timestamp] = []
+    while next_rollover <= end:
+        rollovers.append(next_rollover)
+        next_rollover += pd.Timedelta(days=1)
+    return rollovers
+
+
+def apply_crossed_rollover_swaps(
+    *,
+    cash: float,
+    position: dict,
+    current_time: pd.Timestamp,
+    broker: BrokerProfile,
+) -> float:
+    """Book each newly crossed broker-server rollover exactly once."""
+    last_checked = position.get("last_swap_check_time", position["entry_time"])
+    swap_total = 0.0
+    for rollover in broker_server_rollovers_crossed(last_checked, current_time):
+        swap_total += swap_usd(
+            lot=position["lot"],
+            direction="long",
+            broker=broker,
+            rollover_timestamp=rollover,
+        )
+    if swap_total:
+        position["swap"] += swap_total
+        cash += swap_total
+    position["last_swap_check_time"] = pd.Timestamp(current_time)
+    return cash
+
+
 def fixed_m15_smoke_configs() -> list[dict]:
     """Tiny fixed configuration set; not an optimization grid."""
     return [
@@ -225,8 +279,9 @@ def run_m15_baseline_smoke(
 ) -> dict:
     """Run one deterministic long-only smoke path using Bid OHLC and Ask entries.
 
-    The function purposely uses one position at a time, fixed lot, no swap, no
-    historical news filter, and no parameter search.
+    The function purposely uses one position at a time, fixed lot, broker-server
+    midnight rollover swap accounting, no historical news filter, and no
+    parameter search.
     """
     data = add_baseline_indicators(df)
     capital = broker.initial_capital_usd
@@ -259,9 +314,17 @@ def run_m15_baseline_smoke(
                         "stop_bid": entry_ask - risk_distance,
                         "target_bid": entry_ask + risk_distance * config["rr"],
                         "lot": lot,
+                        "swap": 0.0,
+                        "last_swap_check_time": row.name,
                     }
 
         if position is not None:
+            capital = apply_crossed_rollover_swaps(
+                cash=capital,
+                position=position,
+                current_time=row.name,
+                broker=broker,
+            )
             exit_bid, exit_reason = resolve_long_exit_bid(
                 bar_open_bid=row["open"],
                 bar_high_bid=row["high"],
@@ -270,16 +333,19 @@ def run_m15_baseline_smoke(
                 target_bid=position["target_bid"],
             )
             if exit_reason:
-                trade_pnl = pnl_usd(
+                price_pnl = pnl_usd(
                     position["entry_ask"], exit_bid, position["lot"], broker
                 )
-                capital += trade_pnl
+                trade_pnl = price_pnl + position["swap"]
+                capital += price_pnl
                 trades.append(
                     {
                         **position,
                         "exit_time": row.name,
                         "exit_bid": exit_bid,
                         "reason": exit_reason,
+                        "price_pnl": price_pnl,
+                        "swap": position["swap"],
                         "pnl": trade_pnl,
                     }
                 )
