@@ -217,12 +217,13 @@ def swap_usd(
 def broker_server_rollovers_crossed(
     start: pd.Timestamp, end: pd.Timestamp
 ) -> list[pd.Timestamp]:
-    """Return broker-server midnight rollovers crossed in ``(start, end]``.
+    """Return modeled server-midnight swap rollovers crossed in ``(start, end]``.
 
-    MT5 CSV/chart timestamps for this project are already in the verified
-    broker-server clock, so no timezone conversion is performed here.  A
-    position opened exactly at midnight has not crossed that rollover; a
-    position still open at a later midnight has crossed it exactly once.
+    This baseline models rollover at midnight in the CSV/MT5 server-clock
+    timestamp domain.  The exact broker rollover cutover time is a backtest
+    modeling assumption until it is explicitly verified or configured.  Weekend
+    midnights are skipped because the configured Wednesday triple swap covers
+    the weekend carry.
     """
     start = pd.Timestamp(start)
     end = pd.Timestamp(end)
@@ -232,7 +233,8 @@ def broker_server_rollovers_crossed(
     next_rollover = start.normalize() + pd.Timedelta(days=1)
     rollovers: list[pd.Timestamp] = []
     while next_rollover <= end:
-        rollovers.append(next_rollover)
+        if next_rollover.day_name() not in {"Saturday", "Sunday"}:
+            rollovers.append(next_rollover)
         next_rollover += pd.Timedelta(days=1)
     return rollovers
 
