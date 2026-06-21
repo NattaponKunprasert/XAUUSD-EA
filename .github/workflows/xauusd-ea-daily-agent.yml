@@ -91,6 +91,33 @@ jobs:
           effort: medium
           sandbox: workspace-write
           safety-strategy: drop-sudo
+          output-schema: |
+            {
+              "type": "object",
+              "properties": {
+                "chosen_milestone": {"type": "string"},
+                "summary": {"type": "string"},
+                "files_changed": {"type": "array", "items": {"type": "string"}},
+                "tests": {"type": "array", "items": {"type": "string"}},
+                "correctness_risks": {"type": "array", "items": {"type": "string"}},
+                "blockers": {"type": "array", "items": {"type": "string"}},
+                "recommended_next_milestone": {"type": "string"},
+                "merge_recommended": {"type": "boolean"},
+                "risk_level": {"type": "string", "enum": ["low", "medium", "high"]}
+              },
+              "required": [
+                "chosen_milestone",
+                "summary",
+                "files_changed",
+                "tests",
+                "correctness_risks",
+                "blockers",
+                "recommended_next_milestone",
+                "merge_recommended",
+                "risk_level"
+              ],
+              "additionalProperties": false
+            }
 
       - name: Run test suite
         if: steps.gate.outputs.run == 'true'
@@ -116,23 +143,86 @@ jobs:
           git push --set-upstream origin "${{ steps.branch.outputs.name }}"
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
+      - name: Evaluate safe auto-merge policy
+        if: steps.gate.outputs.run == 'true' && steps.changes.outputs.changed == 'true'
+        id: merge_policy
+        shell: bash
+        env:
+          CODEX_FINAL_MESSAGE: ${{ steps.codex.outputs.final-message }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: |
+          set -euo pipefail
+
+          recommendation="$(printf '%s' "$CODEX_FINAL_MESSAGE" | jq -r '.merge_recommended')"
+          risk_level="$(printf '%s' "$CODEX_FINAL_MESSAGE" | jq -r '.risk_level')"
+          blocker_count="$(printf '%s' "$CODEX_FINAL_MESSAGE" | jq '.blockers | length')"
+          file_count="$(git diff --name-only main...HEAD | wc -l | tr -d ' ')"
+          changed_lines="$(git diff --numstat main...HEAD | awk '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ { total += $1 + $2 } END { print total + 0 }')"
+          deleted_count="$(git diff --name-only --diff-filter=D main...HEAD | wc -l | tr -d ' ')"
+          safe_files=true
+
+          while IFS= read -r file; do
+            case "$file" in
+              xauusd_ea/*|tests/*|PROJECT_STATUS.md|README.md)
+                ;;
+              *)
+                safe_files=false
+                echo "Manual review required for protected or unrecognized path: $file"
+                ;;
+            esac
+          done < <(git diff --name-only main...HEAD)
+
+          auto_merge=false
+          if [ "$TEST_OUTCOME" = "success" ] \
+            && [ "$recommendation" = "true" ] \
+            && [ "$risk_level" = "low" ] \
+            && [ "$blocker_count" -eq 0 ] \
+            && [ "$safe_files" = "true" ] \
+            && [ "$file_count" -le 6 ] \
+            && [ "$changed_lines" -le 400 ] \
+            && [ "$deleted_count" -eq 0 ]; then
+            auto_merge=true
+          fi
+
+          echo "auto_merge=$auto_merge" >> "$GITHUB_OUTPUT"
+          echo "recommendation=$recommendation" >> "$GITHUB_OUTPUT"
+          echo "risk_level=$risk_level" >> "$GITHUB_OUTPUT"
+          echo "Auto-merge decision: $auto_merge"
+          echo "Tests=$TEST_OUTCOME recommendation=$recommendation risk=$risk_level blockers=$blocker_count files=$file_count changed_lines=$changed_lines deletions=$deleted_count safe_files=$safe_files"
+
       - name: Open pull request
         if: steps.gate.outputs.run == 'true' && steps.changes.outputs.changed == 'true'
+        id: pr
         shell: bash
         run: |
           set -euo pipefail
-          body="Automated bounded daily milestone using ${{ steps.gate.outputs.model }}.\n\nWorkflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\nTest outcome: ${{ steps.tests.outcome }}\nTrial end date: ${TRIAL_END_DATE_UTC}\n\nReview all changes before merge. This workflow never auto-merges."
+          body="Automated bounded daily milestone using ${{ steps.gate.outputs.model }}.\n\nWorkflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\nTest outcome: ${{ steps.tests.outcome }}\nAgent merge recommendation: ${{ steps.merge_policy.outputs.recommendation }}\nRisk level: ${{ steps.merge_policy.outputs.risk_level }}\nSafe auto-merge decision: ${{ steps.merge_policy.outputs.auto_merge }}\nTrial end date: ${TRIAL_END_DATE_UTC}\n\nLow-risk changes may be squash-merged automatically. All other changes remain open for review."
           if [ "${{ steps.tests.outcome }}" = "success" ]; then
-            gh pr create \
+            pr_url="$(gh pr create \
               --base main \
               --head "${{ steps.branch.outputs.name }}" \
               --title "Daily agent: bounded XAUUSD EA milestone" \
-              --body "$body"
+              --body "$body")"
           else
-            gh pr create \
+            pr_url="$(gh pr create \
               --draft \
               --base main \
               --head "${{ steps.branch.outputs.name }}" \
               --title "Daily agent: milestone needs test fixes" \
-              --body "$body"
+              --body "$body")"
+          fi
+          echo "url=$pr_url" >> "$GITHUB_OUTPUT"
+          echo "Opened $pr_url"
+
+      - name: Auto-merge low-risk approved change
+        if: steps.gate.outputs.run == 'true' && steps.changes.outputs.changed == 'true' && steps.merge_policy.outputs.auto_merge == 'true'
+        shell: bash
+        env:
+          PR_URL: ${{ steps.pr.outputs.url }}
+        run: |
+          set -euo pipefail
+          if gh pr merge "$PR_URL" --squash --delete-branch; then
+            echo "Safely auto-merged $PR_URL"
+          else
+            echo "::warning::Auto-merge was permitted by policy but GitHub did not allow the merge. The PR remains open for manual review."
           fi
