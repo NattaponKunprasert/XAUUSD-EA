@@ -66,7 +66,21 @@ def test_broker_profile_uses_xm_micro_gold_math():
     assert broker.tick_size == 0.01
     assert broker.tick_value_usd == 0.01
     assert broker.value_per_price_unit_per_lot == pytest.approx(1.0)
+    assert broker.spread_stress_multipliers == (1.0, 1.5, 2.0)
     assert broker.commission_per_lot_round_turn_usd == 0.0
+
+
+def test_spread_scenarios_are_loaded_from_broker_profile():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+
+    assert broker.spread_price_for_multiplier(1.0) == pytest.approx(
+        broker.spread_baseline_price
+    )
+    assert broker.spread_price_for_multiplier(2.0) == pytest.approx(
+        broker.spread_baseline_price * 2.0
+    )
+    with pytest.raises(ValueError, match="Unsupported spread multiplier"):
+        broker.spread_price_for_multiplier(1.25)
 
 
 def test_quantize_lot_never_exceeds_requested_raw_lot():
@@ -395,6 +409,57 @@ def test_m15_only_fixed_smoke_executes_closed_trades_without_full_grid():
         1000.0 + sum(t["pnl"] for t in result["trades"])
     )
     assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
+
+
+def test_fixed_m15_smoke_configs_cover_configured_spread_scenarios():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    configs = fixed_m15_smoke_configs(broker)
+
+    assert [cfg["spread_multiplier"] for cfg in configs] == [1.0, 1.5, 2.0]
+    assert all(cfg["max_trades"] == 3 for cfg in configs)
+
+
+def test_stress_spread_changes_ask_entry_and_open_equity(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        entry_bar={"open": 100.0, "high": 101.0, "low": 100.0, "close": 100.80},
+        post_entry_bar={"open": 100.90, "high": 101.20, "low": 100.80, "close": 101.00},
+    )
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+    baseline_result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "baseline_spread_open_equity",
+            "atr_multiplier": 2.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+            "spread_multiplier": 1.0,
+        },
+    )
+    stress_result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "stress_spread_open_equity",
+            "atr_multiplier": 2.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+            "spread_multiplier": 2.0,
+        },
+    )
+
+    extra_spread = broker.spread_baseline_price
+    assert baseline_result["trade_count"] == 0
+    assert stress_result["trade_count"] == 0
+    assert stress_result["equity_curve"][-1] == pytest.approx(
+        baseline_result["equity_curve"][-1]
+        - extra_spread * 0.10 * broker.contract_size
+    )
 
 
 def test_smoke_entries_execute_on_next_bar_open_plus_spread():
