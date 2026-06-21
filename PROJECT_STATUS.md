@@ -19,6 +19,7 @@ Prepare and verify a small M15-only baseline that exercises the active backtest 
 - M30, H1, and H4 aggregate exactly from M15, including volume
 - The M15 smoke path now has deterministic long-only intrabar exit rules: gap-through-open exits at the open Bid, and same-bar stop/target conflicts resolve conservatively to the stop
 - The M15 smoke path now returns a mark-to-market equity curve using realized cash plus open long PnL marked to the Bid close with XM Micro contract size
+- XM Micro point-based swap math is covered by an automated baseline test, including long/short values and Wednesday triple swap
 
 ## Broker facts
 
