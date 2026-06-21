@@ -23,6 +23,7 @@ class BrokerProfile:
     tick_value_usd: float
     point: float
     spread_baseline_price: float
+    spread_stress_multipliers: tuple[float, ...]
     commission_per_lot_round_turn_usd: float
     fee_per_lot_round_turn_usd: float
     min_lot: float
@@ -52,6 +53,14 @@ class BrokerProfile:
         lot = self.min_lot + steps * self.lot_step
         return round(lot, 2)
 
+    def spread_price_for_multiplier(self, multiplier: float) -> float:
+        if multiplier not in self.spread_stress_multipliers:
+            raise ValueError(
+                f"Unsupported spread multiplier {multiplier!r}; expected one of "
+                f"{self.spread_stress_multipliers!r}"
+            )
+        return self.spread_baseline_price * multiplier
+
 
 def load_broker_profile(path: str | Path) -> BrokerProfile:
     with Path(path).open("r", encoding="utf-8") as fh:
@@ -63,6 +72,9 @@ def load_broker_profile(path: str | Path) -> BrokerProfile:
         tick_value_usd=float(cfg["tick_value_usd"]),
         point=float(cfg["point"]),
         spread_baseline_price=float(cfg["spread_baseline_price"]),
+        spread_stress_multipliers=tuple(
+            float(multiplier) for multiplier in cfg["spread_stress_multipliers"]
+        ),
         commission_per_lot_round_turn_usd=float(
             cfg["commission_per_lot_round_turn_usd"]
         ),
@@ -263,16 +275,19 @@ def apply_crossed_rollover_swaps(
     return cash
 
 
-def fixed_m15_smoke_configs() -> list[dict]:
+def fixed_m15_smoke_configs(broker: BrokerProfile | None = None) -> list[dict]:
     """Tiny fixed configuration set; not an optimization grid."""
+    spread_multipliers = broker.spread_stress_multipliers if broker else (1.0,)
     return [
         {
-            "name": "ema12_26_atr_rr1",
+            "name": f"ema12_26_atr_rr1_spread_{spread_multiplier:g}x",
             "atr_multiplier": 1.0,
             "rr": 1.0,
             "lot": 0.10,
             "max_trades": 3,
-        },
+            "spread_multiplier": spread_multiplier,
+        }
+        for spread_multiplier in spread_multipliers
     ]
 
 
@@ -290,6 +305,8 @@ def run_m15_baseline_smoke(
     equity_curve: list[float] = []
     trades: list[dict] = []
     position = None
+    spread_multiplier = float(config.get("spread_multiplier", 1.0))
+    spread_price = broker.spread_price_for_multiplier(spread_multiplier)
 
     for i in range(27, len(data)):
         row = data.iloc[i]
@@ -304,15 +321,15 @@ def run_m15_baseline_smoke(
             if crossed_up and not pd.isna(signal_bar["atr_14"]):
                 lot = broker.quantize_lot(config["lot"])
                 if lot != 0.0:
-                    entry_ask = entry_ask_from_bid_close(
-                        row["open"], broker.spread_baseline_price
-                    )
+                    entry_ask = entry_ask_from_bid_close(row["open"], spread_price)
                     risk_distance = signal_bar["atr_14"] * config["atr_multiplier"]
                     position = {
                         "signal_time": signal_bar.name,
                         "entry_time": row.name,
                         "entry_ask": entry_ask,
                         "entry_bid_open": row["open"],
+                        "spread_price": spread_price,
+                        "spread_multiplier": spread_multiplier,
                         "stop_bid": entry_ask - risk_distance,
                         "target_bid": entry_ask + risk_distance * config["rr"],
                         "lot": lot,
