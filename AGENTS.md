@@ -17,7 +17,7 @@ Before making changes, read:
 
 - Never use holdout or forward data to generate, tune, rank, or repair a candidate.
 - Fit every adaptive parameter only inside its training window and freeze it before evaluation.
-- Do not silently fall back from a holdout-safe path to an in-sample path.
+- Never fall back from holdout or walk-forward evaluation to full-sample evaluation. If a safe evaluation cannot run, fail or skip the candidate explicitly.
 - Treat soft-ranked or fallback results as diagnostics only; never promote them when strict gates fail.
 - Use Bid/Ask execution consistently. The CSV OHLC bars are Bid prices.
 - For XM Micro `GOLDmicro`, use contract size `1`; never inherit the common XAUUSD default of `100`.
