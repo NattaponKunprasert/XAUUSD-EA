@@ -308,8 +308,10 @@ def run_m15_baseline_smoke(
     spread_multiplier = float(config.get("spread_multiplier", 1.0))
     spread_price = broker.spread_price_for_multiplier(spread_multiplier)
 
+    last_row = None
     for i in range(27, len(data)):
         row = data.iloc[i]
+        last_row = row
         prev = data.iloc[i - 1]
         if position is None:
             signal_bar = prev
@@ -375,6 +377,24 @@ def run_m15_baseline_smoke(
         )
         if len(trades) >= config["max_trades"]:
             break
+
+    if position is not None and last_row is not None:
+        exit_bid = exit_bid_for_long(last_row["close"])
+        price_pnl = pnl_usd(position["entry_ask"], exit_bid, position["lot"], broker)
+        trade_pnl = price_pnl + position["swap"]
+        capital += price_pnl
+        trades.append(
+            {
+                **position,
+                "exit_time": last_row.name,
+                "exit_bid": exit_bid,
+                "reason": "FORCED_FINAL_CLOSE",
+                "price_pnl": price_pnl,
+                "swap": position["swap"],
+                "pnl": trade_pnl,
+            }
+        )
+        equity_curve[-1] = capital
 
     return {
         "trades": trades,

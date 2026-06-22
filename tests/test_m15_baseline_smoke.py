@@ -251,15 +251,17 @@ def test_smoke_multi_day_hold_charges_each_eligible_rollover_once(
         pd.Timestamp("2023-01-05 00:00"),
         pd.Timestamp("2023-01-06 00:00"),
     ]
-    assert result["trade_count"] == 0
-    assert result["final_capital"] == pytest.approx(1000.0 + expected_swap)
-    assert result["equity_curve"][-1] == pytest.approx(
-        1000.0
-        + expected_swap
-        + (100.8 - (100.0 + broker.spread_baseline_price))
-        * 0.10
-        * broker.contract_size
-    )
+    expected_price_pnl = (
+        100.8 - (100.0 + broker.spread_baseline_price)
+    ) * 0.10 * broker.contract_size
+    assert result["trade_count"] == 1
+    trade = result["trades"][0]
+    assert trade["reason"] == "FORCED_FINAL_CLOSE"
+    assert trade["swap"] == pytest.approx(expected_swap)
+    assert trade["price_pnl"] == pytest.approx(expected_price_pnl)
+    assert trade["pnl"] == pytest.approx(expected_price_pnl + expected_swap)
+    assert result["final_capital"] == pytest.approx(1000.0 + trade["pnl"])
+    assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
 
 def test_smoke_applies_one_normal_overnight_rollover_swap(
     monkeypatch: pytest.MonkeyPatch,
@@ -391,11 +393,56 @@ def test_open_smoke_position_books_swap_once_in_cash_and_equity(
 
     expected_swap = -0.09339
     entry_ask = 100.0 + broker.spread_baseline_price
-    assert result["trade_count"] == 0
-    assert result["final_capital"] == pytest.approx(1000.0 + expected_swap)
-    assert result["equity_curve"][-1] == pytest.approx(
-        1000.0 + expected_swap + (101.1 - entry_ask) * 0.10 * broker.contract_size
+    expected_price_pnl = (101.1 - entry_ask) * 0.10 * broker.contract_size
+    assert result["trade_count"] == 1
+    trade = result["trades"][0]
+    assert trade["reason"] == "FORCED_FINAL_CLOSE"
+    assert trade["swap"] == pytest.approx(expected_swap)
+    assert trade["price_pnl"] == pytest.approx(expected_price_pnl)
+    assert result["final_capital"] == pytest.approx(1000.0 + trade["pnl"])
+    assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
+
+
+def test_forced_final_close_realizes_last_bid_close_without_extra_swap(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        start="2023-01-02 16:00",
+        periods=29,
+        entry_bar={"open": 100.0, "high": 100.7, "low": 100.0, "close": 100.6},
+        post_entry_bar={"open": 100.8, "high": 100.9, "low": 100.7, "close": 100.9},
     )
+    monkeypatch.setattr(baseline, "add_baseline_indicators", _stub_baseline_indicators)
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "forced_final_close",
+            "atr_multiplier": 2.0,
+            "rr": 2.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    trade = result["trades"][0]
+    expected_exit_bid = 100.9
+    expected_entry_ask = 100.0 + broker.spread_baseline_price
+    expected_price_pnl = (
+        expected_exit_bid - expected_entry_ask
+    ) * 0.10 * broker.contract_size
+
+    assert result["trade_count"] == 1
+    assert trade["entry_time"] == pd.Timestamp("2023-01-02 22:45")
+    assert trade["exit_time"] == pd.Timestamp("2023-01-02 23:00")
+    assert trade["reason"] == "FORCED_FINAL_CLOSE"
+    assert trade["swap"] == pytest.approx(0.0)
+    assert trade["exit_bid"] == pytest.approx(expected_exit_bid)
+    assert trade["price_pnl"] == pytest.approx(expected_price_pnl)
+    assert result["final_capital"] == pytest.approx(1000.0 + expected_price_pnl)
+    assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
 
 def test_m15_only_fixed_smoke_executes_closed_trades_without_full_grid():
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
@@ -454,11 +501,16 @@ def test_stress_spread_changes_ask_entry_and_open_equity(
     )
 
     extra_spread = broker.spread_baseline_price
-    assert baseline_result["trade_count"] == 0
-    assert stress_result["trade_count"] == 0
-    assert stress_result["equity_curve"][-1] == pytest.approx(
-        baseline_result["equity_curve"][-1]
+    assert baseline_result["trade_count"] == 1
+    assert stress_result["trade_count"] == 1
+    assert stress_result["trades"][0]["reason"] == "FORCED_FINAL_CLOSE"
+    assert baseline_result["trades"][0]["reason"] == "FORCED_FINAL_CLOSE"
+    assert stress_result["final_capital"] == pytest.approx(
+        baseline_result["final_capital"]
         - extra_spread * 0.10 * broker.contract_size
+    )
+    assert stress_result["equity_curve"][-1] == pytest.approx(
+        stress_result["final_capital"]
     )
 
 
@@ -574,8 +626,8 @@ def test_smoke_equity_marks_open_position_to_bid_close(monkeypatch: pytest.Monke
         },
     )
 
-    assert result["trade_count"] == 0
-    assert result["final_capital"] == pytest.approx(1000.0)
+    assert result["trade_count"] == 1
+    assert result["trades"][0]["reason"] == "FORCED_FINAL_CLOSE"
     assert len(result["equity_curve"]) == 2
     assert result["equity_curve"][0] == pytest.approx(
         1000.0
@@ -583,9 +635,12 @@ def test_smoke_equity_marks_open_position_to_bid_close(monkeypatch: pytest.Monke
         * 0.10
         * broker.contract_size
     )
-    assert result["equity_curve"][-1] == pytest.approx(
+    assert result["final_capital"] == pytest.approx(
         1000.0
         + (101.00 - (100.0 + broker.spread_baseline_price))
         * 0.10
         * broker.contract_size
+    )
+    assert result["equity_curve"][-1] == pytest.approx(
+        result["final_capital"]
     )

@@ -21,6 +21,7 @@ Prepare and verify a small M15-only baseline that exercises the active backtest 
 - The M15 smoke path now returns a mark-to-market equity curve using realized cash plus open long PnL marked to the Bid close with XM Micro contract size
 - The M15 smoke path now supports deterministic baseline/stress spread scenarios from `config/xm_micro_gold.json` and rejects unconfigured spread multipliers
 - XM Micro point-based swap math is covered by an automated baseline test, including long/short values and Wednesday triple swap
+- The M15 smoke path now force-closes any remaining open position at the final available Bid close so end-of-sample capital and trade logs are fully realized
 
 ## Broker facts
 
