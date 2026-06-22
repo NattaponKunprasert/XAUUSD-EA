@@ -2,12 +2,12 @@
 
 Read `AGENTS.md`, `PROJECT_STATUS.md`, `XAUUSD_EA_Codex_Handoff.md`, `config/xm_micro_gold.json`, the active source code, tests, and recent repository history before acting.
 
-Advance exactly one bounded engineering milestone toward one auditable XM Micro `GOLDmicro` EA. Select the highest-priority incomplete milestone that can be completed safely in this run. Prefer correctness, leakage prevention, deterministic tests, and broker-accurate execution over strategy performance.
+Advance one bounded engineering milestone toward one auditable XM Micro `GOLDmicro` EA. A milestone may include up to three tightly coupled unfinished subtasks when they share the same correctness objective and can be completed and verified safely in this run. Select the highest-priority incomplete milestone. Prefer correctness, leakage prevention, deterministic tests, and broker-accurate execution over strategy performance.
 
 ## Per-run limits
 
-- Work on one coherent problem group only.
-- Keep the change small and reviewable.
+- Work on one coherent problem group only; combine no more than three tightly coupled subtasks.
+- Keep the change small and reviewable: no more than 6 changed files and 400 changed lines. If the complete milestone would exceed either limit, finish a smaller coherent slice instead.
 - Do not push, merge pull requests, or modify GitHub settings; the workflow owns publication and merge policy.
 - Do not run or materialize the full optimization grid.
 - Do not start long optimization or walk-forward jobs unless the repository explicitly marks that bounded run as the next approved milestone.
@@ -19,7 +19,7 @@ Advance exactly one bounded engineering milestone toward one auditable XM Micro 
 ## Required workflow
 
 1. Inspect the current implementation and tests. State the chosen milestone in your reasoning before editing.
-2. Implement the smallest complete change that advances that milestone.
+2. Implement the largest complete coherent slice that fits the per-run limits. Do not stop after the first tiny edit when adjacent implementation and regression tests are required to complete the same milestone.
 3. Add or strengthen focused deterministic tests that fail without the change.
 4. Run the narrowest relevant tests. Run `python -m pytest -q` before finishing when feasible within the time limit.
 5. Update `PROJECT_STATUS.md` only when the verified project state or next milestone materially changes.
