@@ -2,8 +2,11 @@ name: XAUUSD EA daily agent
 
 on:
   schedule:
-    # 09:00 Asia/Bangkok (UTC+7)
-    - cron: "0 2 * * *"
+    # 09:17, 15:17, and 21:17 Asia/Bangkok (UTC+7).
+    # Nonzero minutes reduce start-of-hour queue pressure.
+    - cron: "17 2 * * *"
+    - cron: "17 8 * * *"
+    - cron: "17 14 * * *"
   workflow_dispatch:
 
 permissions:
@@ -42,7 +45,7 @@ jobs:
             exit 0
           fi
 
-          # The workflow runs at 02:00 UTC, so the UTC weekday matches the Bangkok weekday.
+          # All scheduled UTC hours map to the same Bangkok calendar day.
           if [ "$(date -u +%u)" = "7" ]; then
             model="gpt-5.5"
           else
