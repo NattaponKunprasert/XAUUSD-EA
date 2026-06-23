@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Prepare and verify a small M15-only baseline that exercises the active backtest implementation, including deterministic conservative intrabar exits and equity accounting, without invoking the full parameter grid.
+Validate sample/holdout boundaries and exact-forward configuration identity after the deterministic single-timeframe smoke baseline has been verified independently on M15, M30, H1, and H4.
 
 ## Verified inputs
 
@@ -22,6 +22,7 @@ Prepare and verify a small M15-only baseline that exercises the active backtest 
 - The M15 smoke path now supports deterministic baseline/stress spread scenarios from `config/xm_micro_gold.json` and rejects unconfigured spread multipliers
 - XM Micro point-based swap math is covered by an automated baseline test, including long/short values and Wednesday triple swap
 - The M15 smoke path now force-closes any remaining open position at the final available Bid close so end-of-sample capital and trade logs are fully realized
+- The deterministic single-position smoke path is now timeframe-parameterized and independently regression-tested on M15, M30, H1, and H4 using the same Bid/Ask execution, conservative intrabar exits, swap booking, and final-close accounting rules
 
 ## Broker facts
 

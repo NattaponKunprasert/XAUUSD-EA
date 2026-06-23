@@ -7,12 +7,15 @@ import xauusd_ea.baseline as baseline
 from xauusd_ea.baseline import (
     broker_server_rollovers_crossed,
     entry_ask_from_bid_close,
+    fixed_baseline_smoke_configs,
     fixed_m15_smoke_configs,
     load_broker_profile,
     load_mt5_csv,
     mark_to_market_long_equity,
+    normalize_baseline_timeframe,
     pnl_usd,
     resolve_long_exit_bid,
+    run_baseline_smoke,
     run_m15_baseline_smoke,
     swap_usd,
 )
@@ -81,6 +84,26 @@ def test_spread_scenarios_are_loaded_from_broker_profile():
     )
     with pytest.raises(ValueError, match="Unsupported spread multiplier"):
         broker.spread_price_for_multiplier(1.25)
+
+
+@pytest.mark.parametrize("timeframe", ["M15", "M30", "H1", "H4"])
+def test_baseline_timeframe_normalization_accepts_supported_values(timeframe: str):
+    assert normalize_baseline_timeframe(timeframe.lower()) == timeframe
+
+    configs = fixed_baseline_smoke_configs(timeframe)
+    assert [cfg["spread_multiplier"] for cfg in configs] == [1.0]
+    assert all(cfg["timeframe"] == timeframe for cfg in configs)
+
+
+def test_baseline_smoke_rejects_unsupported_or_mismatched_timeframes():
+    with pytest.raises(ValueError, match="Unsupported baseline timeframe"):
+        normalize_baseline_timeframe("D1")
+
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = load_mt5_csv(ROOT / "XAUUSD_M15.csv").iloc[:500]
+    config = fixed_baseline_smoke_configs("M15")[0] | {"timeframe": "H1"}
+    with pytest.raises(ValueError, match="Timeframe mismatch"):
+        run_baseline_smoke(df, broker, config, timeframe="M15")
 
 
 def test_quantize_lot_never_exceeds_requested_raw_lot():
@@ -464,6 +487,7 @@ def test_fixed_m15_smoke_configs_cover_configured_spread_scenarios():
 
     assert [cfg["spread_multiplier"] for cfg in configs] == [1.0, 1.5, 2.0]
     assert all(cfg["max_trades"] == 3 for cfg in configs)
+    assert all(cfg["timeframe"] == "M15" for cfg in configs)
 
 
 def test_stress_spread_changes_ask_entry_and_open_equity(
@@ -644,3 +668,38 @@ def test_smoke_equity_marks_open_position_to_bid_close(monkeypatch: pytest.Monke
     assert result["equity_curve"][-1] == pytest.approx(
         result["final_capital"]
     )
+
+
+@pytest.mark.parametrize(
+    ("timeframe", "filename", "expected_reasons", "expected_final_capital"),
+    [
+        ("M30", "XAUUSD_M30.csv", ["TP", "SL", "SL"], 999.6055442857142),
+        ("H1", "XAUUSD_H1.csv", ["TP", "TP", "TP"], 1001.3821428571428),
+        ("H4", "XAUUSD_H4.csv", ["SL", "TP", "TP"], 1000.4074999999999),
+    ],
+)
+def test_higher_timeframe_smoke_paths_match_deterministic_baselines(
+    timeframe: str,
+    filename: str,
+    expected_reasons: list[str],
+    expected_final_capital: float,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = load_mt5_csv(ROOT / filename).iloc[:5000]
+
+    result = run_baseline_smoke(
+        df,
+        broker,
+        fixed_baseline_smoke_configs(timeframe)[0],
+        timeframe=timeframe,
+    )
+
+    assert set(result) == {"trades", "final_capital", "trade_count", "equity_curve"}
+    assert result["trade_count"] == 3
+    assert [trade["reason"] for trade in result["trades"]] == expected_reasons
+    assert all(trade["timeframe"] == timeframe for trade in result["trades"])
+    assert result["final_capital"] == pytest.approx(expected_final_capital)
+    assert result["final_capital"] == pytest.approx(
+        1000.0 + sum(trade["pnl"] for trade in result["trades"])
+    )
+    assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])

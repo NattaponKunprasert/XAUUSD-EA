@@ -1,8 +1,8 @@
-"""M15-only baseline smoke-test utilities for XM Micro GOLDmicro.
+"""Deterministic baseline smoke-test utilities for XM Micro GOLDmicro.
 
 This module is intentionally small and deterministic.  It does not run or
 materialize the notebook optimization grid; it only exercises broker math and a
-fixed M15 backtest path that can be audited before strategy logic is changed.
+fixed backtest path that can be audited before strategy logic is changed.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 REQUIRED_COLUMNS = ("open", "high", "low", "close", "volume")
+SUPPORTED_BASELINE_TIMEFRAMES = ("M15", "M30", "H1", "H4")
 
 
 @dataclass(frozen=True)
@@ -111,6 +112,16 @@ def load_mt5_csv(filepath: str | Path) -> pd.DataFrame:
         .sort_values("time")
     )
     return df.set_index("time")
+
+
+def normalize_baseline_timeframe(timeframe: str) -> str:
+    normalized = str(timeframe).upper()
+    if normalized not in SUPPORTED_BASELINE_TIMEFRAMES:
+        raise ValueError(
+            f"Unsupported baseline timeframe {timeframe!r}; expected one of "
+            f"{SUPPORTED_BASELINE_TIMEFRAMES!r}"
+        )
+    return normalized
 
 
 def add_baseline_indicators(df: pd.DataFrame) -> pd.DataFrame:
@@ -242,12 +253,12 @@ def broker_server_rollovers_crossed(
     if end <= start:
         return []
 
-    next_rollover = start.normalize() + pd.Timedelta(days=1)
+    next_rollover = start.normalize() + pd.offsets.Day(1)
     rollovers: list[pd.Timestamp] = []
     while next_rollover <= end:
         if next_rollover.day_name() not in {"Saturday", "Sunday"}:
             rollovers.append(next_rollover)
-        next_rollover += pd.Timedelta(days=1)
+        next_rollover += pd.offsets.Day(1)
     return rollovers
 
 
@@ -275,12 +286,19 @@ def apply_crossed_rollover_swaps(
     return cash
 
 
-def fixed_m15_smoke_configs(broker: BrokerProfile | None = None) -> list[dict]:
-    """Tiny fixed configuration set; not an optimization grid."""
+def fixed_baseline_smoke_configs(
+    timeframe: str, broker: BrokerProfile | None = None
+) -> list[dict]:
+    """Tiny fixed configuration set for one timeframe; not an optimization grid."""
+    normalized_timeframe = normalize_baseline_timeframe(timeframe)
     spread_multipliers = broker.spread_stress_multipliers if broker else (1.0,)
     return [
         {
-            "name": f"ema12_26_atr_rr1_spread_{spread_multiplier:g}x",
+            "name": (
+                f"{normalized_timeframe.lower()}_ema12_26_atr_rr1_"
+                f"spread_{spread_multiplier:g}x"
+            ),
+            "timeframe": normalized_timeframe,
             "atr_multiplier": 1.0,
             "rr": 1.0,
             "lot": 0.10,
@@ -291,8 +309,13 @@ def fixed_m15_smoke_configs(broker: BrokerProfile | None = None) -> list[dict]:
     ]
 
 
-def run_m15_baseline_smoke(
-    df: pd.DataFrame, broker: BrokerProfile, config: dict
+def fixed_m15_smoke_configs(broker: BrokerProfile | None = None) -> list[dict]:
+    """Compatibility wrapper for the original M15-only smoke config helper."""
+    return fixed_baseline_smoke_configs("M15", broker)
+
+
+def run_baseline_smoke(
+    df: pd.DataFrame, broker: BrokerProfile, config: dict, *, timeframe: str
 ) -> dict:
     """Run one deterministic long-only smoke path using Bid OHLC and Ask entries.
 
@@ -300,6 +323,16 @@ def run_m15_baseline_smoke(
     midnight rollover swap accounting, no historical news filter, and no
     parameter search.
     """
+    normalized_timeframe = normalize_baseline_timeframe(timeframe)
+    config_timeframe = config.get("timeframe")
+    if config_timeframe is not None:
+        config_timeframe = normalize_baseline_timeframe(config_timeframe)
+        if config_timeframe != normalized_timeframe:
+            raise ValueError(
+                "Timeframe mismatch between requested run "
+                f"{normalized_timeframe!r} and config {config_timeframe!r}"
+            )
+
     data = add_baseline_indicators(df)
     capital = broker.initial_capital_usd
     equity_curve: list[float] = []
@@ -362,6 +395,7 @@ def run_m15_baseline_smoke(
                 trades.append(
                     {
                         **position,
+                        "timeframe": normalized_timeframe,
                         "exit_time": row.name,
                         "exit_bid": exit_bid,
                         "reason": exit_reason,
@@ -386,6 +420,7 @@ def run_m15_baseline_smoke(
         trades.append(
             {
                 **position,
+                "timeframe": normalized_timeframe,
                 "exit_time": last_row.name,
                 "exit_bid": exit_bid,
                 "reason": "FORCED_FINAL_CLOSE",
@@ -402,3 +437,10 @@ def run_m15_baseline_smoke(
         "trade_count": len(trades),
         "equity_curve": equity_curve,
     }
+
+
+def run_m15_baseline_smoke(
+    df: pd.DataFrame, broker: BrokerProfile, config: dict
+) -> dict:
+    """Compatibility wrapper for the original M15-only smoke runner."""
+    return run_baseline_smoke(df, broker, config, timeframe="M15")
