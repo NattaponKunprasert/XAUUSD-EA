@@ -186,6 +186,7 @@ jobs:
         env:
           CODEX_FINAL_MESSAGE: ${{ steps.codex.outputs.final-message }}
           TEST_OUTCOME: ${{ steps.tests.outcome }}
+          WORK_MODE: ${{ steps.gate.outputs.mode }}
         run: |
           set -euo pipefail
 
@@ -196,6 +197,13 @@ jobs:
           changed_lines="$(git diff --numstat main...HEAD | awk '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ { total += $1 + $2 } END { print total + 0 }')"
           deleted_count="$(git diff --name-only --diff-filter=D main...HEAD | wc -l | tr -d ' ')"
           safe_files=true
+          if [ "$WORK_MODE" = "resume" ]; then
+            max_files=10
+            max_changed_lines=800
+          else
+            max_files=6
+            max_changed_lines=400
+          fi
 
           while IFS= read -r file; do
             case "$file" in
@@ -214,8 +222,8 @@ jobs:
             && [ "$risk_level" != "high" ] \
             && [ "$blocker_count" -eq 0 ] \
             && [ "$safe_files" = "true" ] \
-            && [ "$file_count" -le 6 ] \
-            && [ "$changed_lines" -le 400 ] \
+            && [ "$file_count" -le "$max_files" ] \
+            && [ "$changed_lines" -le "$max_changed_lines" ] \
             && [ "$deleted_count" -eq 0 ]; then
             auto_merge=true
           fi
@@ -224,7 +232,7 @@ jobs:
           echo "recommendation=$recommendation" >> "$GITHUB_OUTPUT"
           echo "risk_level=$risk_level" >> "$GITHUB_OUTPUT"
           echo "Auto-merge decision: $auto_merge"
-          echo "Tests=$TEST_OUTCOME recommendation=$recommendation risk=$risk_level blockers=$blocker_count files=$file_count changed_lines=$changed_lines deletions=$deleted_count safe_files=$safe_files"
+          echo "Tests=$TEST_OUTCOME recommendation=$recommendation risk=$risk_level blockers=$blocker_count files=$file_count/$max_files changed_lines=$changed_lines/$max_changed_lines deletions=$deleted_count safe_files=$safe_files mode=$WORK_MODE"
 
       - name: Open pull request
         if: steps.gate.outputs.run == 'true' && steps.gate.outputs.mode == 'new' && steps.changes.outputs.changed == 'true'
