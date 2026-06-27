@@ -7,7 +7,7 @@ You are maintaining an existing open daily-agent pull request. Do not start a ne
 ## Required workflow
 
 1. Inspect every changed file and test in `main...HEAD`.
-2. Identify and resolve correctness risks, incomplete integration, stale assumptions, merge conflicts, and any reason the previous run withheld its merge recommendation.
+2. Ensure the PR branch incorporates current `main`; resolve any divergence or merge conflicts, then identify and resolve correctness risks, incomplete integration, stale assumptions, and every reason the previous run withheld its merge recommendation.
 3. Preserve all non-negotiable leakage, broker-accounting, reproducibility, risk, and no-live-authorization rules in `AGENTS.md`.
 4. Add or strengthen deterministic regression tests for each correction. For configuration identity guards, runtime metadata exemptions must be narrowly scoped and must never hide nested research parameters.
 5. Keep the complete PR within 6 changed files and 400 changed lines when possible. If the existing PR is already near the limit, prefer a focused correction over unrelated expansion.
