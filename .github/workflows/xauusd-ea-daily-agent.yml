@@ -95,18 +95,26 @@ jobs:
         env:
           WORK_MODE: ${{ steps.gate.outputs.mode }}
           WORK_BRANCH: ${{ steps.gate.outputs.branch }}
+          SELECTED_PROMPT: ${{ steps.gate.outputs.prompt_file }}
         run: |
           set -euo pipefail
+          runtime_prompt="$RUNNER_TEMP/daily-agent-prompt.md"
+          cp "$SELECTED_PROMPT" "$runtime_prompt"
+          git config user.name "XAUUSD EA Daily Agent"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           if [ "$WORK_MODE" = "resume" ]; then
             git fetch origin "$WORK_BRANCH"
             git checkout -B "$WORK_BRANCH" "origin/$WORK_BRANCH"
             if ! git merge --no-edit main; then
-              echo "::warning::Merge conflicts detected; the PR maintainer must resolve them."
+              git merge --abort || true
+              echo "::warning::Automatic main merge failed; the PR maintainer will resolve the divergence from a clean branch."
             fi
           else
             git checkout -b "$WORK_BRANCH"
           fi
           echo "name=$WORK_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "prompt_file=$runtime_prompt" >> "$GITHUB_OUTPUT"
 
       - name: Run bounded Codex milestone
         if: steps.gate.outputs.run == 'true'
@@ -114,7 +122,7 @@ jobs:
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt-file: ${{ steps.gate.outputs.prompt_file }}
+          prompt-file: ${{ steps.branch.outputs.prompt_file }}
           model: ${{ steps.gate.outputs.model }}
           effort: medium
           sandbox: workspace-write
