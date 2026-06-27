@@ -115,6 +115,42 @@ def test_exact_forward_config_identity_rejects_research_parameter_changes():
         assert_exact_forward_config_identity(sample_config, forward_config)
 
 
+def test_exact_forward_config_identity_does_not_ignore_nested_research_params():
+    sample_config = {
+        "id": "sample_M30_003",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+        "filters": {"session": {"window_id": "london_open"}},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 12, "window_id": 6},
+    }
+
+    with pytest.raises(UnsafeEvaluationError, match="Exact forward config mismatch"):
+        assert_exact_forward_config_identity(sample_config, forward_config)
+
+
+def test_exact_forward_config_identity_allows_explicit_nested_metadata_exemptions():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+        "filters": {"session": {"window_id": "london_open"}},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 12, "window_id": 5},
+        "filters": {"session": {"window_id": "new_runtime_window"}},
+    }
+
+    assert_exact_forward_config_identity(
+        sample_config,
+        forward_config,
+        ignored_paths={("filters", "session", "window_id")},
+    )
+
+
 def test_exact_forward_config_identity_rejects_non_finite_values():
     sample_config = {"id": "sample_H4_003", "timeframe": "H4", "params": {"rr": 1.0}}
     forward_config = {"id": "sample_H4_003", "timeframe": "H4", "params": {"rr": float("nan")}}

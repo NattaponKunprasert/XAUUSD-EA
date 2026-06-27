@@ -13,7 +13,7 @@ import pandas as pd
 
 DEFAULT_SAMPLE_RATIO_MIN = 0.50
 DEFAULT_SAMPLE_RATIO_MAX = 0.90
-DEFAULT_CONFIG_IDENTITY_IGNORED_KEYS = frozenset(
+DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS = frozenset(
     {
         "Exact Config Forward Test",
         "Loaded Config Path",
@@ -126,23 +126,38 @@ def split_sample_holdout(
 
 
 def research_config_payload(
-    config: dict[str, Any], *, ignored_keys: set[str] | frozenset[str] | None = None
+    config: dict[str, Any],
+    *,
+    ignored_keys: set[str] | frozenset[str] | None = None,
+    ignored_paths: set[tuple[str, ...]] | frozenset[tuple[str, ...]] | None = None,
 ) -> dict[str, Any]:
     """Return a canonical config payload suitable for identity hashing."""
     active_ignored_keys = (
-        DEFAULT_CONFIG_IDENTITY_IGNORED_KEYS
+        DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS
         if ignored_keys is None
         else frozenset(ignored_keys)
     )
-    return _normalize_value(config, ignored_keys=active_ignored_keys)
+    active_ignored_paths = frozenset() if ignored_paths is None else frozenset(ignored_paths)
+    return _normalize_value(
+        config,
+        ignored_keys=active_ignored_keys,
+        ignored_paths=active_ignored_paths,
+    )
 
 
 def research_config_fingerprint(
-    config: dict[str, Any], *, ignored_keys: set[str] | frozenset[str] | None = None
+    config: dict[str, Any],
+    *,
+    ignored_keys: set[str] | frozenset[str] | None = None,
+    ignored_paths: set[tuple[str, ...]] | frozenset[tuple[str, ...]] | None = None,
 ) -> str:
-    payload = research_config_payload(config, ignored_keys=ignored_keys)
+    payload = research_config_payload(
+        config,
+        ignored_keys=ignored_keys,
+        ignored_paths=ignored_paths,
+    )
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("ascii")).hexdigest()
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def assert_exact_forward_config_identity(
@@ -150,32 +165,72 @@ def assert_exact_forward_config_identity(
     forward_config: dict[str, Any],
     *,
     ignored_keys: set[str] | frozenset[str] | None = None,
+    ignored_paths: set[tuple[str, ...]] | frozenset[tuple[str, ...]] | None = None,
 ) -> str:
     """Ensure forward evaluation uses the exact same research config."""
-    sample_payload = research_config_payload(sample_config, ignored_keys=ignored_keys)
-    forward_payload = research_config_payload(forward_config, ignored_keys=ignored_keys)
+    sample_payload = research_config_payload(
+        sample_config,
+        ignored_keys=ignored_keys,
+        ignored_paths=ignored_paths,
+    )
+    forward_payload = research_config_payload(
+        forward_config,
+        ignored_keys=ignored_keys,
+        ignored_paths=ignored_paths,
+    )
     if sample_payload != forward_payload:
         raise UnsafeEvaluationError(
             "Exact forward config mismatch; evaluation must use the identical "
             "sample-selected config without research-parameter changes"
         )
-    return research_config_fingerprint(sample_config, ignored_keys=ignored_keys)
+    return research_config_fingerprint(
+        sample_config,
+        ignored_keys=ignored_keys,
+        ignored_paths=ignored_paths,
+    )
 
 
 def _normalize_value(
-    value: Any, *, ignored_keys: frozenset[str]
+    value: Any,
+    *,
+    ignored_keys: frozenset[str],
+    ignored_paths: frozenset[tuple[str, ...]],
+    path: tuple[str, ...] = (),
 ) -> dict[str, Any] | list[Any] | str | int | float | bool | None:
     if isinstance(value, dict):
         normalized: dict[str, Any] = {}
         for key in sorted(value):
-            if key in ignored_keys:
+            key_text = str(key)
+            key_path = path + (key_text,)
+            if (not path and key_text in ignored_keys) or key_path in ignored_paths:
                 continue
-            normalized[str(key)] = _normalize_value(value[key], ignored_keys=ignored_keys)
+            normalized[key_text] = _normalize_value(
+                value[key],
+                ignored_keys=ignored_keys,
+                ignored_paths=ignored_paths,
+                path=key_path,
+            )
         return normalized
     if isinstance(value, (list, tuple)):
-        return [_normalize_value(item, ignored_keys=ignored_keys) for item in value]
+        return [
+            _normalize_value(
+                item,
+                ignored_keys=ignored_keys,
+                ignored_paths=ignored_paths,
+                path=path,
+            )
+            for item in value
+        ]
     if isinstance(value, set):
-        return sorted(_normalize_value(item, ignored_keys=ignored_keys) for item in value)
+        return sorted(
+            _normalize_value(
+                item,
+                ignored_keys=ignored_keys,
+                ignored_paths=ignored_paths,
+                path=path,
+            )
+            for item in value
+        )
     if isinstance(value, (pd.Timestamp, datetime, date)):
         return value.isoformat()
     if value is None or isinstance(value, (str, bool, int)):
