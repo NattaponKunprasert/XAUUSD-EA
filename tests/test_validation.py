@@ -4,10 +4,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from xauusd_ea.baseline import load_mt5_csv
 from xauusd_ea.validation import (
     SampleHoldoutSplit,
     UnsafeEvaluationError,
+    WalkForwardWindow,
     assert_exact_forward_config_identity,
+    plan_walk_forward_windows,
     research_config_fingerprint,
     split_sample_holdout,
 )
@@ -42,6 +45,34 @@ def test_split_sample_holdout_creates_non_overlapping_chronological_ranges():
     assert split.sample.index.equals(df.index[:7])
     assert split.holdout.index.equals(df.index[7:])
     assert split.sample_end < split.holdout_start
+
+
+@pytest.mark.parametrize(
+    ("timeframe", "filename", "expected_split", "expected_sample_end", "expected_holdout_start"),
+    [
+        ("M15", "XAUUSD_M15.csv", 57246, "2025-06-05 06:45:00", "2025-06-05 07:00:00"),
+        ("M30", "XAUUSD_M30.csv", 28625, "2025-06-05 06:30:00", "2025-06-05 07:00:00"),
+        ("H1", "XAUUSD_H1.csv", 14321, "2025-06-05 05:00:00", "2025-06-05 06:00:00"),
+        ("H4", "XAUUSD_H4.csv", 3746, "2025-06-04 20:00:00", "2025-06-05 00:00:00"),
+    ],
+)
+def test_split_sample_holdout_matches_real_dataset_boundaries(
+    timeframe: str,
+    filename: str,
+    expected_split: int,
+    expected_sample_end: str,
+    expected_holdout_start: str,
+):
+    df = load_mt5_csv(ROOT / filename)
+
+    split = split_sample_holdout(df, timeframe=timeframe, sample_ratio=0.70)
+
+    assert split.split_index == expected_split
+    assert split.sample_start == df.index[0]
+    assert split.sample_end == pd.Timestamp(expected_sample_end)
+    assert split.holdout_start == pd.Timestamp(expected_holdout_start)
+    assert split.holdout_end == df.index[-1]
+    assert len(split.sample) + len(split.holdout) == len(df)
 
 
 @pytest.mark.parametrize("ratio", [0.49, 0.91])
@@ -89,6 +120,88 @@ def test_split_sample_holdout_rejects_ratio_that_requires_boundary_clipping():
             min_sample_rows=2,
             min_holdout_rows=2,
         )
+
+
+def test_plan_walk_forward_windows_produces_chronological_non_overlapping_windows():
+    df = _make_timeframe_df(periods=12)
+
+    windows = plan_walk_forward_windows(
+        df,
+        timeframe="M15",
+        train_window=4,
+        test_window=2,
+        step_size=2,
+    )
+
+    assert all(isinstance(window, WalkForwardWindow) for window in windows)
+    assert [(w.train_start, w.train_end, w.test_start, w.test_end) for w in windows] == [
+        (0, 4, 4, 6),
+        (2, 6, 6, 8),
+        (4, 8, 8, 10),
+        (6, 10, 10, 12),
+    ]
+    assert windows[0].train_start_time == df.index[0]
+    assert windows[0].train_end_time == df.index[3]
+    assert windows[0].test_start_time == df.index[4]
+    assert windows[0].test_end_time == df.index[5]
+    assert all(window.train_end == window.test_start for window in windows)
+
+
+def test_plan_walk_forward_windows_rejects_insufficient_rows_without_fallback():
+    df = _make_timeframe_df(periods=5)
+
+    with pytest.raises(UnsafeEvaluationError, match="not enough rows"):
+        plan_walk_forward_windows(
+            df,
+            timeframe="M15",
+            train_window=4,
+            test_window=2,
+            step_size=1,
+        )
+
+
+def test_plan_walk_forward_windows_rejects_invalid_index_or_parameters():
+    unsorted_df = _make_timeframe_df(periods=8).sort_index(ascending=False)
+    with pytest.raises(UnsafeEvaluationError, match="sorted timestamps"):
+        plan_walk_forward_windows(
+            unsorted_df,
+            timeframe="M15",
+            train_window=4,
+            test_window=2,
+            step_size=1,
+        )
+
+    df = _make_timeframe_df(periods=8)
+    with pytest.raises(ValueError, match="must be positive"):
+        plan_walk_forward_windows(
+            df,
+            timeframe="M15",
+            train_window=0,
+            test_window=2,
+            step_size=1,
+        )
+
+
+def test_plan_walk_forward_windows_matches_real_h4_dataset_boundaries():
+    df = load_mt5_csv(ROOT / "XAUUSD_H4.csv")
+
+    windows = plan_walk_forward_windows(
+        df,
+        timeframe="H4",
+        train_window=750,
+        test_window=125,
+        step_size=60,
+        min_windows=2,
+    )
+
+    assert len(windows) == 75
+    assert windows[0].train_start_time == pd.Timestamp("2023-01-03 00:00:00")
+    assert windows[0].train_end_time == pd.Timestamp("2023-06-27 20:00:00")
+    assert windows[0].test_start_time == pd.Timestamp("2023-06-28 00:00:00")
+    assert windows[0].test_end_time == pd.Timestamp("2023-07-26 16:00:00")
+    assert windows[-1].train_start == 4440
+    assert windows[-1].test_end == 5315
+    assert windows[-1].test_end_time == pd.Timestamp("2026-06-11 12:00:00")
 
 
 def test_research_config_fingerprint_ignores_runtime_forward_metadata():
