@@ -59,6 +59,33 @@ class SampleHoldoutSplit:
         return pd.Timestamp(self.holdout.index[-1])
 
 
+@dataclass(frozen=True)
+class WalkForwardWindow:
+    timeframe: str
+    window: int
+    train_start: int
+    train_end: int
+    test_start: int
+    test_end: int
+    train_start_time: pd.Timestamp
+    train_end_time: pd.Timestamp
+    test_start_time: pd.Timestamp
+    test_end_time: pd.Timestamp
+
+
+def _require_chronological_datetime_index(
+    df: pd.DataFrame, *, context: str
+) -> None:
+    if not isinstance(df.index, pd.DatetimeIndex):
+        raise UnsafeEvaluationError(f"{context} requires a DatetimeIndex")
+    if not df.index.is_monotonic_increasing:
+        raise UnsafeEvaluationError(f"{context} requires sorted timestamps")
+    if not df.index.is_unique:
+        raise UnsafeEvaluationError(
+            f"{context} requires unique timestamps without overlap"
+        )
+
+
 def split_sample_holdout(
     df: pd.DataFrame,
     *,
@@ -73,14 +100,7 @@ def split_sample_holdout(
     evaluation. If a safe split cannot be produced, it raises explicitly so the
     caller can fail or skip the candidate.
     """
-    if not isinstance(df.index, pd.DatetimeIndex):
-        raise UnsafeEvaluationError("Sample/holdout split requires a DatetimeIndex")
-    if not df.index.is_monotonic_increasing:
-        raise UnsafeEvaluationError("Sample/holdout split requires sorted timestamps")
-    if not df.index.is_unique:
-        raise UnsafeEvaluationError(
-            "Sample/holdout split requires unique timestamps without overlap"
-        )
+    _require_chronological_datetime_index(df, context="Sample/holdout split")
     if min_sample_rows < 1 or min_holdout_rows < 1:
         raise ValueError("Minimum sample and holdout rows must be positive")
 
@@ -129,6 +149,62 @@ def split_sample_holdout(
         sample=sample,
         holdout=holdout,
     )
+
+
+def plan_walk_forward_windows(
+    df: pd.DataFrame,
+    *,
+    timeframe: str,
+    train_window: int,
+    test_window: int,
+    step_size: int,
+    min_windows: int = 1,
+) -> list[WalkForwardWindow]:
+    """Plan chronological walk-forward windows without fallback behavior."""
+    _require_chronological_datetime_index(df, context="Walk-forward planning")
+    if train_window < 1 or test_window < 1 or step_size < 1:
+        raise ValueError("train_window, test_window, and step_size must be positive")
+    if min_windows < 1:
+        raise ValueError("min_windows must be positive")
+
+    total_rows = len(df)
+    required_rows = train_window + test_window
+    if total_rows < required_rows:
+        raise UnsafeEvaluationError(
+            f"{timeframe}: not enough rows for walk-forward planning; need at least "
+            f"{required_rows}, found {total_rows}"
+        )
+
+    windows: list[WalkForwardWindow] = []
+    window_number = 1
+    train_start = 0
+    while train_start + required_rows <= total_rows:
+        train_end = train_start + train_window
+        test_start = train_end
+        test_end = test_start + test_window
+        windows.append(
+            WalkForwardWindow(
+                timeframe=str(timeframe),
+                window=window_number,
+                train_start=train_start,
+                train_end=train_end,
+                test_start=test_start,
+                test_end=test_end,
+                train_start_time=pd.Timestamp(df.index[train_start]),
+                train_end_time=pd.Timestamp(df.index[train_end - 1]),
+                test_start_time=pd.Timestamp(df.index[test_start]),
+                test_end_time=pd.Timestamp(df.index[test_end - 1]),
+            )
+        )
+        window_number += 1
+        train_start += step_size
+
+    if len(windows) < min_windows:
+        raise UnsafeEvaluationError(
+            f"{timeframe}: walk-forward planning produced {len(windows)} windows; "
+            f"required at least {min_windows}"
+        )
+    return windows
 
 
 def research_config_payload(

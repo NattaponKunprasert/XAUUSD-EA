@@ -23,6 +23,7 @@ Validate sample/holdout boundaries and exact-forward configuration identity afte
 - XM Micro point-based swap math is covered by an automated baseline test, including long/short values and Wednesday triple swap
 - The M15 smoke path now force-closes any remaining open position at the final available Bid close so end-of-sample capital and trade logs are fully realized
 - The deterministic single-position smoke path is now timeframe-parameterized and independently regression-tested on M15, M30, H1, and H4 using the same Bid/Ask execution, conservative intrabar exits, swap booking, and final-close accounting rules
+- The importable validation layer now fail-fast plans chronological sample/holdout splits and walk-forward windows, with deterministic regression coverage on synthetic data plus real M15/M30/H1/H4 CSV boundaries
 
 ## Broker facts
 
@@ -53,6 +54,7 @@ See `config/xm_micro_gold.json` for the machine-readable snapshot and bounded re
 - The notebook contains legacy and newer duplicate function definitions.
 - A legacy Fibonacci function still contains an always-true condition.
 - The newest backtest implementation must be isolated and tested before trusting results.
+- The active notebook still contains local split/fallback code paths that must be routed through the importable validation helpers before holdout and walk-forward evaluation can be treated as fully audited.
 - The original generic XAUUSD default contract size of 100 is invalid for this XM Micro account.
 - A fixed average spread cannot reproduce the timing of historical spread spikes.
 - Multi-position optimization is invalid until the backtest engine supports multiple concurrent positions.
