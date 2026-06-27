@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -75,6 +76,21 @@ def test_split_sample_holdout_rejects_missing_holdout_rows():
         )
 
 
+def test_split_sample_holdout_rejects_ratio_that_requires_boundary_clipping():
+    df = _make_timeframe_df(periods=5)
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="cannot satisfy the required minimum rows"
+    ):
+        split_sample_holdout(
+            df,
+            timeframe="M15",
+            sample_ratio=0.90,
+            min_sample_rows=2,
+            min_holdout_rows=2,
+        )
+
+
 def test_research_config_fingerprint_ignores_runtime_forward_metadata():
     sample_config = {
         "id": "sample_M15_001",
@@ -131,6 +147,22 @@ def test_exact_forward_config_identity_does_not_ignore_nested_research_params():
         assert_exact_forward_config_identity(sample_config, forward_config)
 
 
+def test_exact_forward_config_identity_treats_top_level_window_id_as_research_data():
+    sample_config = {
+        "id": "sample_M30_window",
+        "timeframe": "M30",
+        "window_id": 5,
+        "params": {"ema_fast": 12},
+    }
+    forward_config = {
+        **sample_config,
+        "window_id": 6,
+    }
+
+    with pytest.raises(UnsafeEvaluationError, match="Exact forward config mismatch"):
+        assert_exact_forward_config_identity(sample_config, forward_config)
+
+
 def test_exact_forward_config_identity_allows_explicit_nested_metadata_exemptions():
     sample_config = {
         "id": "sample_M30_004",
@@ -159,3 +191,29 @@ def test_exact_forward_config_identity_rejects_non_finite_values():
         research_config_fingerprint(forward_config)
     with pytest.raises(UnsafeEvaluationError, match="non-finite"):
         assert_exact_forward_config_identity(sample_config, forward_config)
+
+
+def test_research_config_fingerprint_normalizes_numpy_scalar_values():
+    sample_config = {
+        "id": "sample_np_001",
+        "timeframe": "H1",
+        "params": {
+            "ema_fast": np.int64(12),
+            "risk_percent": np.float64(0.5),
+            "enabled": np.bool_(True),
+        },
+    }
+    native_config = {
+        "id": "sample_np_001",
+        "timeframe": "H1",
+        "params": {
+            "ema_fast": 12,
+            "risk_percent": 0.5,
+            "enabled": True,
+        },
+    }
+
+    assert research_config_fingerprint(sample_config) == research_config_fingerprint(
+        native_config
+    )
+    assert_exact_forward_config_identity(sample_config, native_config)

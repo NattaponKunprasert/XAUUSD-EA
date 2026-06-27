@@ -9,6 +9,7 @@ import json
 import math
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 DEFAULT_SAMPLE_RATIO_MIN = 0.50
@@ -25,7 +26,6 @@ DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS = frozenset(
         "sample_rank",
         "sample_strategy_id",
         "trades",
-        "window_id",
     }
 )
 
@@ -100,7 +100,13 @@ def split_sample_holdout(
         )
 
     split_index = int(total_rows * ratio)
-    split_index = max(min_sample_rows, min(split_index, total_rows - min_holdout_rows))
+    if split_index < min_sample_rows or total_rows - split_index < min_holdout_rows:
+        raise UnsafeEvaluationError(
+            f"{timeframe}: sample_ratio={ratio:.2f} cannot satisfy the required "
+            f"minimum rows without changing the audited boundary; requested split "
+            f"yields sample={split_index} and holdout={total_rows - split_index}, "
+            f"required at least {min_sample_rows}/{min_holdout_rows}"
+        )
     sample = df.iloc[:split_index].copy()
     holdout = df.iloc[split_index:].copy()
 
@@ -199,7 +205,7 @@ def _normalize_value(
 ) -> dict[str, Any] | list[Any] | str | int | float | bool | None:
     if isinstance(value, dict):
         normalized: dict[str, Any] = {}
-        for key in sorted(value):
+        for key in sorted(value, key=lambda item: str(item)):
             key_text = str(key)
             key_path = path + (key_text,)
             if (not path and key_text in ignored_keys) or key_path in ignored_paths:
@@ -233,6 +239,13 @@ def _normalize_value(
         )
     if isinstance(value, (pd.Timestamp, datetime, date)):
         return value.isoformat()
+    if isinstance(value, np.generic):
+        return _normalize_value(
+            value.item(),
+            ignored_keys=ignored_keys,
+            ignored_paths=ignored_paths,
+            path=path,
+        )
     if value is None or isinstance(value, (str, bool, int)):
         return value
     if isinstance(value, float):
