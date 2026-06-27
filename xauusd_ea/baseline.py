@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Mapping
 import pandas as pd
 
 REQUIRED_COLUMNS = ("open", "high", "low", "close", "volume")
@@ -19,10 +20,14 @@ SUPPORTED_BASELINE_TIMEFRAMES = ("M15", "M30", "H1", "H4")
 @dataclass(frozen=True)
 class BrokerProfile:
     symbol: str
+    aliases: tuple[str, ...]
+    digits: int
     contract_size: float
     tick_size: float
     tick_value_usd: float
     point: float
+    ohlc_price_source: str
+    spread_mode: str
     spread_baseline_price: float
     spread_stress_multipliers: tuple[float, ...]
     commission_per_lot_round_turn_usd: float
@@ -30,6 +35,8 @@ class BrokerProfile:
     min_lot: float
     max_lot: float
     lot_step: float
+    execution: str
+    account_mode: str
     initial_capital_usd: float
     swap_type: str
     swap_long_points: float
@@ -62,16 +69,50 @@ class BrokerProfile:
             )
         return self.spread_baseline_price * multiplier
 
+    def to_runtime_spec(self) -> dict[str, Any]:
+        """Return the verified broker constants for runtime/backtest paths."""
+        return {
+            "symbol": self.symbol,
+            "aliases": list(self.aliases),
+            "digits": self.digits,
+            "contract_size": self.contract_size,
+            "tick_size": self.tick_size,
+            "tick_value_usd": self.tick_value_usd,
+            "point": self.point,
+            "ohlc_price_source": self.ohlc_price_source,
+            "spread_mode": self.spread_mode,
+            "spread_baseline_price": self.spread_baseline_price,
+            "spread_stress_multipliers": list(self.spread_stress_multipliers),
+            "commission_per_lot_round_turn_usd": (
+                self.commission_per_lot_round_turn_usd
+            ),
+            "fee_per_lot_round_turn_usd": self.fee_per_lot_round_turn_usd,
+            "min_lot": self.min_lot,
+            "max_lot": self.max_lot,
+            "lot_step": self.lot_step,
+            "execution": self.execution,
+            "account_mode": self.account_mode,
+            "initial_capital_usd": self.initial_capital_usd,
+            "swap_type": self.swap_type,
+            "swap_long_points": self.swap_long_points,
+            "swap_short_points": self.swap_short_points,
+            "triple_swap_day": self.triple_swap_day,
+        }
+
 
 def load_broker_profile(path: str | Path) -> BrokerProfile:
     with Path(path).open("r", encoding="utf-8") as fh:
         cfg = json.load(fh)
     return BrokerProfile(
         symbol=cfg["symbol"],
+        aliases=tuple(str(alias) for alias in cfg.get("aliases", ())),
+        digits=int(cfg["digits"]),
         contract_size=float(cfg["contract_size"]),
         tick_size=float(cfg["tick_size"]),
         tick_value_usd=float(cfg["tick_value_usd"]),
         point=float(cfg["point"]),
+        ohlc_price_source=str(cfg["ohlc_price_source"]),
+        spread_mode=str(cfg["spread_mode"]),
         spread_baseline_price=float(cfg["spread_baseline_price"]),
         spread_stress_multipliers=tuple(
             float(multiplier) for multiplier in cfg["spread_stress_multipliers"]
@@ -83,12 +124,61 @@ def load_broker_profile(path: str | Path) -> BrokerProfile:
         min_lot=float(cfg["min_lot"]),
         max_lot=float(cfg["max_lot"]),
         lot_step=float(cfg["lot_step"]),
+        execution=str(cfg["execution"]),
+        account_mode=str(cfg["account_mode"]),
         initial_capital_usd=float(cfg["initial_capital_usd"]),
         swap_type=str(cfg["swap_type"]),
         swap_long_points=float(cfg["swap_long_points_snapshot"]),
         swap_short_points=float(cfg["swap_short_points_snapshot"]),
         triple_swap_day=str(cfg["triple_swap_day"]),
     )
+
+
+def assert_runtime_broker_spec_matches_profile(
+    runtime_spec: Mapping[str, Any],
+    broker: BrokerProfile,
+) -> dict[str, Any]:
+    """Fail loudly when an active runtime spec conflicts with the verified config."""
+    expected = broker.to_runtime_spec()
+    comparable_fields = (
+        "symbol",
+        "digits",
+        "contract_size",
+        "tick_size",
+        "tick_value_usd",
+        "point",
+        "ohlc_price_source",
+        "spread_mode",
+        "commission_per_lot_round_turn_usd",
+        "fee_per_lot_round_turn_usd",
+        "min_lot",
+        "max_lot",
+        "lot_step",
+        "execution",
+        "account_mode",
+        "swap_type",
+        "triple_swap_day",
+    )
+    mismatches: list[str] = []
+    for field in comparable_fields:
+        if field not in runtime_spec:
+            mismatches.append(f"{field}: missing; expected {expected[field]!r}")
+            continue
+        actual = runtime_spec[field]
+        wanted = expected[field]
+        if actual != wanted:
+            mismatches.append(f"{field}: got {actual!r}, expected {wanted!r}")
+
+    if mismatches:
+        joined = "; ".join(mismatches)
+        raise ValueError(
+            "Runtime broker spec conflicts with config/xm_micro_gold.json: "
+            f"{joined}"
+        )
+
+    merged = dict(expected)
+    merged.update(runtime_spec)
+    return merged
 
 
 def load_mt5_csv(filepath: str | Path) -> pd.DataFrame:
