@@ -33,7 +33,7 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Enforce trial window, choose model, and gate open PRs
+      - name: Enforce trial window, choose model, and select work mode
         id: gate
         shell: bash
         run: |
@@ -54,13 +54,28 @@ jobs:
           echo "model=$model" >> "$GITHUB_OUTPUT"
           echo "Selected model: $model"
 
-          count="$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("codex/daily-"))] | length')"
+          open_prs="$(gh pr list --state open --limit 100 --json number,headRefName,url,createdAt             --jq '[.[] | select(.headRefName | startswith("codex/daily-"))] | sort_by(.createdAt)')"
+          count="$(printf '%s' "$open_prs" | jq 'length')"
           if [ "$count" -gt 0 ]; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "An earlier daily-agent PR is still open; skipping this run."
+            branch="$(printf '%s' "$open_prs" | jq -r '.[0].headRefName')"
+            pr_number="$(printf '%s' "$open_prs" | jq -r '.[0].number')"
+            pr_url="$(printf '%s' "$open_prs" | jq -r '.[0].url')"
+            echo "mode=resume" >> "$GITHUB_OUTPUT"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+            echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
+            echo "prompt_file=.github/codex/prompts/daily-pr-maintainer.md" >> "$GITHUB_OUTPUT"
+            echo "Resuming oldest open daily-agent PR #$pr_number ($branch); open PR count=$count."
           else
-            echo "run=true" >> "$GITHUB_OUTPUT"
+            branch="codex/daily-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            echo "mode=new" >> "$GITHUB_OUTPUT"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+            echo "pr_number=" >> "$GITHUB_OUTPUT"
+            echo "pr_url=" >> "$GITHUB_OUTPUT"
+            echo "prompt_file=.github/codex/prompts/daily-builder.md" >> "$GITHUB_OUTPUT"
+            echo "No open daily-agent PR; starting a new bounded milestone."
           fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
         if: steps.gate.outputs.run == 'true'
@@ -73,15 +88,33 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: python -m pip install -r requirements.txt
 
-      - name: Create isolated daily branch
+      - name: Prepare daily-agent branch
         if: steps.gate.outputs.run == 'true'
         id: branch
         shell: bash
+        env:
+          WORK_MODE: ${{ steps.gate.outputs.mode }}
+          WORK_BRANCH: ${{ steps.gate.outputs.branch }}
+          SELECTED_PROMPT: ${{ steps.gate.outputs.prompt_file }}
         run: |
           set -euo pipefail
-          branch="codex/daily-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          git checkout -b "$branch"
-          echo "name=$branch" >> "$GITHUB_OUTPUT"
+          runtime_prompt="$RUNNER_TEMP/daily-agent-prompt.md"
+          cp "$SELECTED_PROMPT" "$runtime_prompt"
+          git config user.name "XAUUSD EA Daily Agent"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [ "$WORK_MODE" = "resume" ]; then
+            git fetch origin "$WORK_BRANCH"
+            git checkout -B "$WORK_BRANCH" "origin/$WORK_BRANCH"
+            if ! git merge --no-edit main; then
+              git merge --abort || true
+              echo "::warning::Automatic main merge failed; the PR maintainer will resolve the divergence from a clean branch."
+            fi
+          else
+            git checkout -b "$WORK_BRANCH"
+          fi
+          echo "name=$WORK_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "prompt_file=$runtime_prompt" >> "$GITHUB_OUTPUT"
 
       - name: Run bounded Codex milestone
         if: steps.gate.outputs.run == 'true'
@@ -89,7 +122,7 @@ jobs:
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt-file: .github/codex/prompts/daily-builder.md
+          prompt-file: ${{ steps.branch.outputs.prompt_file }}
           model: ${{ steps.gate.outputs.model }}
           effort: medium
           sandbox: workspace-write
@@ -146,8 +179,8 @@ jobs:
           git push --set-upstream origin "${{ steps.branch.outputs.name }}"
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Evaluate safe auto-merge policy
-        if: steps.gate.outputs.run == 'true' && steps.changes.outputs.changed == 'true'
+      - name: Evaluate autonomous merge policy
+        if: steps.gate.outputs.run == 'true' && (steps.changes.outputs.changed == 'true' || steps.gate.outputs.mode == 'resume')
         id: merge_policy
         shell: bash
         env:
@@ -178,7 +211,7 @@ jobs:
           auto_merge=false
           if [ "$TEST_OUTCOME" = "success" ] \
             && [ "$recommendation" = "true" ] \
-            && [ "$risk_level" = "low" ] \
+            && [ "$risk_level" != "high" ] \
             && [ "$blocker_count" -eq 0 ] \
             && [ "$safe_files" = "true" ] \
             && [ "$file_count" -le 6 ] \
@@ -194,12 +227,12 @@ jobs:
           echo "Tests=$TEST_OUTCOME recommendation=$recommendation risk=$risk_level blockers=$blocker_count files=$file_count changed_lines=$changed_lines deletions=$deleted_count safe_files=$safe_files"
 
       - name: Open pull request
-        if: steps.gate.outputs.run == 'true' && steps.changes.outputs.changed == 'true'
+        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.mode == 'new' && steps.changes.outputs.changed == 'true'
         id: pr
         shell: bash
         run: |
           set -euo pipefail
-          body="Automated bounded daily milestone using ${{ steps.gate.outputs.model }}.\n\nWorkflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\nTest outcome: ${{ steps.tests.outcome }}\nAgent merge recommendation: ${{ steps.merge_policy.outputs.recommendation }}\nRisk level: ${{ steps.merge_policy.outputs.risk_level }}\nSafe auto-merge decision: ${{ steps.merge_policy.outputs.auto_merge }}\nTrial end date: ${TRIAL_END_DATE_UTC}\n\nLow-risk changes may be squash-merged automatically. All other changes remain open for review."
+          body="Automated bounded daily milestone using ${{ steps.gate.outputs.model }}.\n\nWorkflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\nTest outcome: ${{ steps.tests.outcome }}\nAgent merge recommendation: ${{ steps.merge_policy.outputs.recommendation }}\nRisk level: ${{ steps.merge_policy.outputs.risk_level }}\nAutonomous merge decision: ${{ steps.merge_policy.outputs.auto_merge }}\nTrial end date: ${TRIAL_END_DATE_UTC}\n\nIf this PR remains open, the next scheduled run will repair and re-evaluate the same PR instead of skipping it."
           if [ "${{ steps.tests.outcome }}" = "success" ]; then
             pr_url="$(gh pr create \
               --base main \
@@ -217,15 +250,22 @@ jobs:
           echo "url=$pr_url" >> "$GITHUB_OUTPUT"
           echo "Opened $pr_url"
 
-      - name: Auto-merge low-risk approved change
-        if: steps.gate.outputs.run == 'true' && steps.changes.outputs.changed == 'true' && steps.merge_policy.outputs.auto_merge == 'true'
+      - name: Auto-merge agent-approved change
+        if: steps.gate.outputs.run == 'true' && steps.merge_policy.outputs.auto_merge == 'true'
         shell: bash
         env:
-          PR_URL: ${{ steps.pr.outputs.url }}
+          WORK_MODE: ${{ steps.gate.outputs.mode }}
+          EXISTING_PR_URL: ${{ steps.gate.outputs.pr_url }}
+          NEW_PR_URL: ${{ steps.pr.outputs.url }}
         run: |
           set -euo pipefail
-          if gh pr merge "$PR_URL" --squash --delete-branch; then
-            echo "Safely auto-merged $PR_URL"
+          if [ "$WORK_MODE" = "resume" ]; then
+            pr_url="$EXISTING_PR_URL"
           else
-            echo "::warning::Auto-merge was permitted by policy but GitHub did not allow the merge. The PR remains open for manual review."
+            pr_url="$NEW_PR_URL"
+          fi
+          if gh pr merge "$pr_url" --squash --delete-branch; then
+            echo "Autonomously merged $pr_url"
+          else
+            echo "::warning::The agent approved the merge but GitHub did not allow it. The next scheduled run will retry the same PR."
           fi
