@@ -85,6 +85,21 @@ def test_active_notebook_records_exact_forward_config_fingerprint():
     assert "Sample Config Fingerprint" in source
 
 
+def test_active_notebook_routes_broker_spec_through_verified_profile():
+    source = _notebook_code_source()
+
+    assert "from xauusd_ea.baseline import (" in source
+    assert "load_broker_profile(" in source
+    assert "assert_runtime_broker_spec_matches_profile(" in source
+    assert "XAUUSD_SPEC = assert_runtime_broker_spec_matches_profile({" in source
+    assert '"symbol": "XAUUSD"' not in source
+    assert '"contract_size": 100.0' not in source
+    assert '"min_lot": 0.01' not in source
+    assert '"max_lot": 50.0' not in source
+    assert '"spread_points": 150' not in source
+    assert '"commission_per_lot_round_turn": 7.0' not in source
+
+
 @pytest.mark.parametrize(
     ("timeframe", "filename", "expected_split", "expected_sample_end", "expected_holdout_start"),
     [
