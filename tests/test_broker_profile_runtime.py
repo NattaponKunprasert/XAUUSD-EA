@@ -62,6 +62,24 @@ def test_runtime_spec_match_rejects_legacy_xauusd_defaults():
         assert_runtime_broker_spec_matches_profile(legacy_spec, broker)
 
 
+def test_runtime_spec_match_rejects_legacy_spread_and_account_costs():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    legacy_cost_spec = {
+        **broker.to_runtime_spec(),
+        "spread_baseline_price": 1.5,
+        "spread_stress_multipliers": [1.0],
+        "initial_capital_usd": 10_000.0,
+        "swap_long_points": -100.0,
+        "swap_short_points": -100.0,
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="spread_baseline_price: got 1.5, expected 0.551142857142857",
+    ):
+        assert_runtime_broker_spec_matches_profile(legacy_cost_spec, broker)
+
+
 def test_runtime_spec_match_rejects_missing_required_verified_fields():
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
     incomplete_spec = {

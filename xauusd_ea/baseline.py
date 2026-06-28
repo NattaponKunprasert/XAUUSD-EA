@@ -142,6 +142,7 @@ def assert_runtime_broker_spec_matches_profile(
     expected = broker.to_runtime_spec()
     comparable_fields = (
         "symbol",
+        "aliases",
         "digits",
         "contract_size",
         "tick_size",
@@ -149,6 +150,8 @@ def assert_runtime_broker_spec_matches_profile(
         "point",
         "ohlc_price_source",
         "spread_mode",
+        "spread_baseline_price",
+        "spread_stress_multipliers",
         "commission_per_lot_round_turn_usd",
         "fee_per_lot_round_turn_usd",
         "min_lot",
@@ -156,7 +159,10 @@ def assert_runtime_broker_spec_matches_profile(
         "lot_step",
         "execution",
         "account_mode",
+        "initial_capital_usd",
         "swap_type",
+        "swap_long_points",
+        "swap_short_points",
         "triple_swap_day",
     )
     mismatches: list[str] = []
