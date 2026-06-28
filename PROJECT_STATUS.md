@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Validate sample/holdout boundaries and exact-forward configuration identity after the deterministic single-timeframe smoke baseline has been verified independently on M15, M30, H1, and H4.
+Route the active notebook broker/runtime constants through `config/xm_micro_gold.json` and fail loudly on legacy XAUUSD defaults before any notebook-driven research run.
 
 ## Verified inputs
 
@@ -24,6 +24,7 @@ Validate sample/holdout boundaries and exact-forward configuration identity afte
 - The M15 smoke path now force-closes any remaining open position at the final available Bid close so end-of-sample capital and trade logs are fully realized
 - The deterministic single-position smoke path is now timeframe-parameterized and independently regression-tested on M15, M30, H1, and H4 using the same Bid/Ask execution, conservative intrabar exits, swap booking, and final-close accounting rules
 - The importable validation layer now fail-fast plans chronological sample/holdout splits and walk-forward windows, with deterministic regression coverage on synthetic data plus real M15/M30/H1/H4 CSV boundaries
+- The active notebook now routes AUTO sample/forward splits and walk-forward window planning through the importable validation helpers; unsafe WFA planning skips the candidate/timeframe instead of falling back to full-sample evaluation, and exact loaded configs record a validation fingerprint
 
 ## Broker facts
 
@@ -54,7 +55,7 @@ See `config/xm_micro_gold.json` for the machine-readable snapshot and bounded re
 - The notebook contains legacy and newer duplicate function definitions.
 - A legacy Fibonacci function still contains an always-true condition.
 - The newest backtest implementation must be isolated and tested before trusting results.
-- The active notebook still contains local split/fallback code paths that must be routed through the importable validation helpers before holdout and walk-forward evaluation can be treated as fully audited.
+- The active notebook still defines legacy XAUUSD broker defaults locally; these must be routed through `config/xm_micro_gold.json` before notebook-driven results can be treated as fully audited for XM Micro `GOLDmicro`.
 - The original generic XAUUSD default contract size of 100 is invalid for this XM Micro account.
 - A fixed average spread cannot reproduce the timing of historical spread spikes.
 - Multi-position optimization is invalid until the backtest engine supports multiple concurrent positions.

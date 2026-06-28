@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import numpy as np
@@ -16,6 +17,7 @@ from xauusd_ea.validation import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+NOTEBOOK = ROOT / "EA_XAUUSD_29102025_Master_FIXED_V3_9_HOLDOUT_SAFE_EXACT_FORWARD (1).ipynb"
 
 
 def _make_timeframe_df(periods: int = 10) -> pd.DataFrame:
@@ -32,6 +34,15 @@ def _make_timeframe_df(periods: int = 10) -> pd.DataFrame:
     )
 
 
+def _notebook_code_source() -> str:
+    notebook = json.loads(NOTEBOOK.read_text(encoding="utf-8"))
+    return "\n".join(
+        "".join(cell.get("source", []))
+        for cell in notebook.get("cells", [])
+        if cell.get("cell_type") == "code"
+    )
+
+
 def test_split_sample_holdout_creates_non_overlapping_chronological_ranges():
     df = _make_timeframe_df(periods=10)
 
@@ -45,6 +56,33 @@ def test_split_sample_holdout_creates_non_overlapping_chronological_ranges():
     assert split.sample.index.equals(df.index[:7])
     assert split.holdout.index.equals(df.index[7:])
     assert split.sample_end < split.holdout_start
+
+
+def test_active_notebook_routes_holdout_split_through_validation_helper():
+    source = _notebook_code_source()
+
+    assert "from xauusd_ea.validation import (" in source
+    assert "split_sample_holdout(" in source
+    assert "np.clip(sample_ratio" not in source
+    assert "raw_df.iloc[0:0].copy()" not in source
+
+
+def test_active_notebook_walk_forward_does_not_fallback_to_full_sample():
+    source = _notebook_code_source()
+
+    assert "plan_walk_forward_windows(" in source
+    assert "timeframe=tf_name" in source
+    assert "UnsafeEvaluationError" in source
+    assert "FALLBACK_FULL_SAMPLE" not in source
+    assert "falling back to full-sample evaluation" not in source
+
+
+def test_active_notebook_records_exact_forward_config_fingerprint():
+    source = _notebook_code_source()
+
+    assert "assert_exact_forward_config_identity(cfg, cfg)" in source
+    assert "sample_config_fingerprint" in source
+    assert "Sample Config Fingerprint" in source
 
 
 @pytest.mark.parametrize(
