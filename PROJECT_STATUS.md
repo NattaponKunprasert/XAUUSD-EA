@@ -26,6 +26,7 @@ Route the active notebook broker/runtime constants through `config/xm_micro_gold
 - The importable validation layer now fail-fast plans chronological sample/holdout splits and walk-forward windows, with deterministic regression coverage on synthetic data plus real M15/M30/H1/H4 CSV boundaries
 - The active notebook now routes AUTO sample/forward splits and walk-forward window planning through the importable validation helpers; unsafe WFA planning skips the candidate/timeframe instead of falling back to full-sample evaluation, and exact loaded configs record a validation fingerprint
 - The active notebook now builds its runtime broker spec from `config/xm_micro_gold.json` and validates it before notebook-driven research paths run, preventing silent fallback to legacy XAUUSD contract, lot, spread, or commission defaults
+- The active notebook now quantizes lots against the verified XM Micro min/max/step, skips sub-minimum risk sizes as no-trade, and removes legacy `contract_size=100` sizing/PnL fallbacks from active runtime helpers
 
 ## Broker facts
 
@@ -56,7 +57,6 @@ See `config/xm_micro_gold.json` for the machine-readable snapshot and bounded re
 - The notebook contains legacy and newer duplicate function definitions.
 - A legacy Fibonacci function still contains an always-true condition.
 - The newest backtest implementation must be isolated and tested before trusting results.
-- The original generic XAUUSD default contract size of 100 is invalid for this XM Micro account.
 - A fixed average spread cannot reproduce the timing of historical spread spikes.
 - Multi-position optimization is invalid until the backtest engine supports multiple concurrent positions.
 

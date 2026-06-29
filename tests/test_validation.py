@@ -100,6 +100,33 @@ def test_active_notebook_routes_broker_spec_through_verified_profile():
     assert '"commission_per_lot_round_turn": 7.0' not in source
 
 
+def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up():
+    source = _notebook_code_source()
+
+    assert 'runtime_spec = globals().get("XAUUSD_SPEC", {})' in source
+    assert 'contract_size = config.get("contract_size", runtime_spec.get("contract_size", 1.0))' in source
+    assert 'min_lot = config.get("min_lot", runtime_spec.get("min_lot", 0.1))' in source
+    assert 'contract_size = kwargs.get("contract_size", runtime_spec.get("contract_size", 1.0))' in source
+    assert 'min_lot = kwargs.get("min_lot", runtime_spec.get("min_lot", 0.1))' in source
+    assert 'if lot_size < min_lot:' in source
+    assert 'return 0.0' in source
+    assert 'steps = int((lot_size - min_lot) / lot_step + 1e-12)' in source
+    assert 'round(round(lot / step) * step, precision)' not in source
+    assert 'lot_size = max(min_lot, min(lot_size, max_lot))' not in source
+
+
+def test_active_notebook_has_no_stale_legacy_outputs_or_full_sample_fallback_text():
+    notebook_text = NOTEBOOK.read_text(encoding="utf-8")
+
+    assert "falling back to full-sample evaluation" not in notebook_text
+    assert "'symbol': 'XAUUSD'" not in notebook_text
+    assert "'contract_size': 100.0" not in notebook_text
+    assert "'min_lot': 0.01" not in notebook_text
+    assert "'max_lot': 50.0" not in notebook_text
+    assert "'spread_points': 150" not in notebook_text
+    assert "'commission_per_lot_round_turn': 7.0" not in notebook_text
+
+
 @pytest.mark.parametrize(
     ("timeframe", "filename", "expected_split", "expected_sample_end", "expected_holdout_start"),
     [
