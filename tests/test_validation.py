@@ -80,7 +80,9 @@ def test_active_notebook_walk_forward_does_not_fallback_to_full_sample():
 def test_active_notebook_records_exact_forward_config_fingerprint():
     source = _notebook_code_source()
 
-    assert "assert_exact_forward_config_identity(cfg, cfg)" in source
+    assert "sample_cfg = copy.deepcopy(cfg)" in source
+    assert "assert_exact_forward_config_identity(sample_cfg, cfg)" in source
+    assert "assert_exact_forward_config_identity(cfg, cfg)" not in source
     assert "sample_config_fingerprint" in source
     assert "Sample Config Fingerprint" in source
 
