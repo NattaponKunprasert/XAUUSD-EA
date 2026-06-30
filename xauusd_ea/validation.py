@@ -23,6 +23,7 @@ DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS = frozenset(
         "final_capital",
         "metrics",
         "sample_config_path",
+        "sample_config_fingerprint",
         "sample_rank",
         "sample_strategy_id",
         "trades",
@@ -365,6 +366,12 @@ def _normalize_ignored_paths(
     invalid_paths = [path for path in normalized if not path]
     if invalid_paths:
         raise UnsafeEvaluationError("Ignored config paths must not be empty")
+    broad_metadata_roots = sorted(path for path in normalized if len(path) < 2)
+    if broad_metadata_roots:
+        raise UnsafeEvaluationError(
+            "Exact forward config nested ignores must target specific metadata "
+            f"fields, not whole roots: {broad_metadata_roots!r}"
+        )
 
     disallowed = sorted(
         path

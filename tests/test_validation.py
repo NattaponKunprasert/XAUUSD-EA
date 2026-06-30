@@ -378,6 +378,15 @@ def test_exact_forward_config_identity_allows_explicit_nested_metadata_exemption
     )
 
 
+def test_exact_forward_config_identity_rejects_broad_metadata_root_exemptions():
+    with pytest.raises(UnsafeEvaluationError, match="target specific metadata fields"):
+        assert_exact_forward_config_identity(
+            {"runtime_metadata": {"loaded_window_id": "a"}},
+            {"runtime_metadata": {"loaded_window_id": "b"}},
+            ignored_paths={("runtime_metadata",)},
+        )
+
+
 def test_exact_forward_config_identity_rejects_nested_exemptions_for_research_paths():
     sample_config = {
         "id": "sample_M30_004",
@@ -418,6 +427,17 @@ def test_exact_forward_config_identity_rejects_top_level_research_key_exemptions
             forward_config,
             ignored_keys={"params"},
         )
+
+
+def test_exact_forward_config_identity_ignores_recorded_fingerprint_metadata():
+    sample_config = {"id": "sample_M15_005", "timeframe": "M15", "params": {"ema_fast": 12}}
+    forward_config = {
+        **sample_config,
+        "sample_strategy_id": "sample_M15_005",
+        "sample_config_fingerprint": "sha256:placeholder",
+    }
+
+    assert_exact_forward_config_identity(sample_config, forward_config)
 
 
 def test_exact_forward_config_identity_rejects_non_finite_values():
