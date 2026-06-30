@@ -363,19 +363,61 @@ def test_exact_forward_config_identity_allows_explicit_nested_metadata_exemption
         "id": "sample_M30_004",
         "timeframe": "M30",
         "params": {"ema_fast": 12, "window_id": 5},
-        "filters": {"session": {"window_id": "london_open"}},
+        "runtime_metadata": {"loaded_window_id": "london_open"},
     }
     forward_config = {
         **sample_config,
         "params": {"ema_fast": 12, "window_id": 5},
-        "filters": {"session": {"window_id": "new_runtime_window"}},
+        "runtime_metadata": {"loaded_window_id": "new_runtime_window"},
     }
 
     assert_exact_forward_config_identity(
         sample_config,
         forward_config,
-        ignored_paths={("filters", "session", "window_id")},
+        ignored_paths={("runtime_metadata", "loaded_window_id")},
     )
+
+
+def test_exact_forward_config_identity_rejects_nested_exemptions_for_research_paths():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 10, "window_id": 5},
+    }
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="nested ignores are restricted to audited runtime metadata roots"
+    ):
+        assert_exact_forward_config_identity(
+            sample_config,
+            forward_config,
+            ignored_paths={("params", "ema_fast")},
+        )
+
+
+def test_exact_forward_config_identity_rejects_top_level_research_key_exemptions():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 10},
+    }
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="audited top-level runtime metadata"
+    ):
+        assert_exact_forward_config_identity(
+            sample_config,
+            forward_config,
+            ignored_keys={"params"},
+        )
 
 
 def test_exact_forward_config_identity_rejects_non_finite_values():

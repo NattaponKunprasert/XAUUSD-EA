@@ -28,6 +28,12 @@ DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS = frozenset(
         "trades",
     }
 )
+ALLOWED_CONFIG_IDENTITY_NESTED_METADATA_ROOTS = frozenset(
+    {
+        "runtime_metadata",
+        "validation_metadata",
+    }
+)
 
 
 class UnsafeEvaluationError(ValueError):
@@ -214,12 +220,8 @@ def research_config_payload(
     ignored_paths: set[tuple[str, ...]] | frozenset[tuple[str, ...]] | None = None,
 ) -> dict[str, Any]:
     """Return a canonical config payload suitable for identity hashing."""
-    active_ignored_keys = (
-        DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS
-        if ignored_keys is None
-        else frozenset(ignored_keys)
-    )
-    active_ignored_paths = frozenset() if ignored_paths is None else frozenset(ignored_paths)
+    active_ignored_keys = _normalize_ignored_keys(ignored_keys)
+    active_ignored_paths = _normalize_ignored_paths(ignored_paths)
     return _normalize_value(
         config,
         ignored_keys=active_ignored_keys,
@@ -333,3 +335,46 @@ def _normalize_value(
     raise UnsafeEvaluationError(
         f"Unsupported config value type for identity hashing: {type(value)!r}"
     )
+
+
+def _normalize_ignored_keys(
+    ignored_keys: set[str] | frozenset[str] | None,
+) -> frozenset[str]:
+    if ignored_keys is None:
+        return DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS
+
+    normalized = frozenset(str(key) for key in ignored_keys)
+    disallowed = normalized - DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS
+    if disallowed:
+        raise UnsafeEvaluationError(
+            "Exact forward config ignores only audited top-level runtime metadata; "
+            f"disallowed keys: {sorted(disallowed)!r}"
+        )
+    return normalized
+
+
+def _normalize_ignored_paths(
+    ignored_paths: set[tuple[str, ...]] | frozenset[tuple[str, ...]] | None,
+) -> frozenset[tuple[str, ...]]:
+    if ignored_paths is None:
+        return frozenset()
+
+    normalized = frozenset(
+        tuple(str(part) for part in path) for path in ignored_paths
+    )
+    invalid_paths = [path for path in normalized if not path]
+    if invalid_paths:
+        raise UnsafeEvaluationError("Ignored config paths must not be empty")
+
+    disallowed = sorted(
+        path
+        for path in normalized
+        if path[0] not in ALLOWED_CONFIG_IDENTITY_NESTED_METADATA_ROOTS
+    )
+    if disallowed:
+        raise UnsafeEvaluationError(
+            "Exact forward config nested ignores are restricted to audited runtime "
+            f"metadata roots {sorted(ALLOWED_CONFIG_IDENTITY_NESTED_METADATA_ROOTS)!r}; "
+            f"disallowed paths: {disallowed!r}"
+        )
+    return normalized
