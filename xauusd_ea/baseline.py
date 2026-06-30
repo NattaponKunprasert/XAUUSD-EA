@@ -140,6 +140,18 @@ def assert_runtime_broker_spec_matches_profile(
 ) -> dict[str, Any]:
     """Fail loudly when an active runtime spec conflicts with the verified config."""
     expected = broker.to_runtime_spec()
+    derived_expectations = {
+        "spread_points": broker.spread_baseline_price / broker.point,
+        "commission_per_lot_round_turn": broker.commission_per_lot_round_turn_usd,
+        "fee_per_lot_round_turn": broker.fee_per_lot_round_turn_usd,
+        "swap_per_lot": broker.swap_long_points * broker.point * broker.contract_size,
+        "swap_long_per_lot": (
+            broker.swap_long_points * broker.point * broker.contract_size
+        ),
+        "swap_short_per_lot": (
+            broker.swap_short_points * broker.point * broker.contract_size
+        ),
+    }
     comparable_fields = (
         "symbol",
         "aliases",
@@ -172,6 +184,12 @@ def assert_runtime_broker_spec_matches_profile(
             continue
         actual = runtime_spec[field]
         wanted = expected[field]
+        if actual != wanted:
+            mismatches.append(f"{field}: got {actual!r}, expected {wanted!r}")
+    for field, wanted in derived_expectations.items():
+        if field not in runtime_spec:
+            continue
+        actual = runtime_spec[field]
         if actual != wanted:
             mismatches.append(f"{field}: got {actual!r}, expected {wanted!r}")
 

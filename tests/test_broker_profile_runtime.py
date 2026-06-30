@@ -35,6 +35,16 @@ def test_runtime_spec_match_accepts_verified_constants_and_keeps_extra_fields():
         **broker.to_runtime_spec(),
         "lot_precision": 2,
         "spread_application": "full",
+        "spread_points": broker.spread_baseline_price / broker.point,
+        "commission_per_lot_round_turn": broker.commission_per_lot_round_turn_usd,
+        "fee_per_lot_round_turn": broker.fee_per_lot_round_turn_usd,
+        "swap_per_lot": broker.swap_long_points * broker.point * broker.contract_size,
+        "swap_long_per_lot": (
+            broker.swap_long_points * broker.point * broker.contract_size
+        ),
+        "swap_short_per_lot": (
+            broker.swap_short_points * broker.point * broker.contract_size
+        ),
     }
 
     merged = assert_runtime_broker_spec_matches_profile(runtime_spec, broker)
@@ -78,6 +88,22 @@ def test_runtime_spec_match_rejects_legacy_spread_and_account_costs():
         match="spread_baseline_price: got 1.5, expected 0.551142857142857",
     ):
         assert_runtime_broker_spec_matches_profile(legacy_cost_spec, broker)
+
+
+def test_runtime_spec_match_rejects_conflicting_derived_cost_aliases():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    conflicting_runtime_spec = {
+        **broker.to_runtime_spec(),
+        "spread_points": 150.0,
+        "commission_per_lot_round_turn": 7.0,
+        "swap_long_per_lot": -1.0,
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="spread_points: got 150.0, expected 55.1142857142857",
+    ):
+        assert_runtime_broker_spec_matches_profile(conflicting_runtime_spec, broker)
 
 
 def test_runtime_spec_match_rejects_missing_required_verified_fields():
