@@ -102,6 +102,18 @@ def test_active_notebook_routes_broker_spec_through_verified_profile():
     assert '"commission_per_lot_round_turn": 7.0' not in source
 
 
+def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost_defaults():
+    source = _notebook_code_source()
+
+    assert 'runtime_spec = globals().get("XAUUSD_SPEC", {})' in source
+    assert "config.get('commission_per_lot', 7.0)" not in source
+    assert "config.get('spread_points', 1.5)" not in source
+    assert "config.get('swap_per_lot', -1.0)" not in source
+    assert "runtime_spec.get('commission_per_lot_round_turn', 0.0)" in source
+    assert "runtime_spec.get('spread_points', 0.0)" in source
+    assert "runtime_spec.get('swap_per_lot', 0.0)" in source
+
+
 def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up():
     source = _notebook_code_source()
 
