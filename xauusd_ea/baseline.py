@@ -15,6 +15,18 @@ import pandas as pd
 
 REQUIRED_COLUMNS = ("open", "high", "low", "close", "volume")
 SUPPORTED_BASELINE_TIMEFRAMES = ("M15", "M30", "H1", "H4")
+REQUIRED_RUNTIME_BROKER_SPEC_FIELDS = (
+    "symbol",
+    "contract_size",
+    "point",
+    "min_lot",
+    "max_lot",
+    "lot_step",
+    "spread_points",
+    "commission_per_lot_round_turn",
+    "swap_per_lot",
+    "cost_value_mode",
+)
 
 
 @dataclass(frozen=True)
@@ -203,6 +215,31 @@ def assert_runtime_broker_spec_matches_profile(
     merged = dict(expected)
     merged.update(runtime_spec)
     return merged
+
+
+def require_runtime_broker_spec(
+    runtime_spec: Mapping[str, Any] | None,
+    *,
+    required_fields: tuple[str, ...] = REQUIRED_RUNTIME_BROKER_SPEC_FIELDS,
+) -> dict[str, Any]:
+    """Require a verified runtime broker spec before notebook helpers execute."""
+    if runtime_spec is None:
+        raise ValueError(
+            "Runtime broker spec is not initialized; load and verify "
+            "config/xm_micro_gold.json before running notebook helpers"
+        )
+    if not isinstance(runtime_spec, Mapping):
+        raise ValueError(
+            "Runtime broker spec must be a mapping loaded from "
+            "config/xm_micro_gold.json"
+        )
+    missing = [field for field in required_fields if field not in runtime_spec]
+    if missing:
+        raise ValueError(
+            "Runtime broker spec is missing verified fields required by active "
+            f"notebook helpers: {missing!r}"
+        )
+    return dict(runtime_spec)
 
 
 def load_mt5_csv(filepath: str | Path) -> pd.DataFrame:

@@ -5,6 +5,7 @@ import pytest
 from xauusd_ea.baseline import (
     assert_runtime_broker_spec_matches_profile,
     load_broker_profile,
+    require_runtime_broker_spec,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,3 +116,40 @@ def test_runtime_spec_match_rejects_missing_required_verified_fields():
 
     with pytest.raises(ValueError, match="digits: missing; expected 2"):
         assert_runtime_broker_spec_matches_profile(incomplete_spec, broker)
+
+
+def test_require_runtime_broker_spec_accepts_checked_runtime_spec():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    runtime_spec = require_runtime_broker_spec(
+        {
+            **broker.to_runtime_spec(),
+            "lot_precision": 2,
+            "cost_value_mode": "points",
+            "spread_points": broker.spread_baseline_price / broker.point,
+            "commission_per_lot_round_turn": (
+                broker.commission_per_lot_round_turn_usd
+            ),
+            "swap_per_lot": (
+                broker.swap_long_points * broker.point * broker.contract_size
+            ),
+        }
+    )
+
+    assert runtime_spec["symbol"] == "GOLDmicro"
+    assert runtime_spec["spread_points"] == pytest.approx(55.1142857142857)
+
+
+def test_require_runtime_broker_spec_rejects_missing_verified_runtime_fields():
+    with pytest.raises(
+        ValueError,
+        match="missing verified fields required by active notebook helpers",
+    ):
+        require_runtime_broker_spec(
+            {
+                "symbol": "GOLDmicro",
+                "contract_size": 1.0,
+                "point": 0.01,
+                "min_lot": 0.1,
+                "max_lot": 100.0,
+            }
+        )
