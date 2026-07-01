@@ -137,8 +137,11 @@ def test_active_notebook_has_no_stale_legacy_outputs_or_full_sample_fallback_tex
     assert "'contract_size': 100.0" not in notebook_text
     assert "'min_lot': 0.01" not in notebook_text
     assert "'max_lot': 50.0" not in notebook_text
+    assert "'spread_points': 1.5" not in notebook_text
     assert "'spread_points': 150" not in notebook_text
+    assert "'commission_per_lot': 7.0" not in notebook_text
     assert "'commission_per_lot_round_turn': 7.0" not in notebook_text
+    assert "'swap_per_lot': -1.0" not in notebook_text
 
 
 @pytest.mark.parametrize(
@@ -388,6 +391,32 @@ def test_exact_forward_config_identity_allows_explicit_nested_metadata_exemption
         forward_config,
         ignored_paths={("runtime_metadata", "loaded_window_id")},
     )
+
+
+def test_exact_forward_config_identity_rejects_structured_metadata_exemptions():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+        "runtime_metadata": {
+            "loaded_window": {"id": "london_open", "ema_fast": 12},
+        },
+    }
+    forward_config = {
+        **sample_config,
+        "runtime_metadata": {
+            "loaded_window": {"id": "new_runtime_window", "ema_fast": 10},
+        },
+    }
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="must point to scalar leaf values"
+    ):
+        assert_exact_forward_config_identity(
+            sample_config,
+            forward_config,
+            ignored_paths={("runtime_metadata", "loaded_window")},
+        )
 
 
 def test_exact_forward_config_identity_rejects_broad_metadata_root_exemptions():

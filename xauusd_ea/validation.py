@@ -287,7 +287,10 @@ def _normalize_value(
         for key in sorted(value, key=lambda item: str(item)):
             key_text = str(key)
             key_path = path + (key_text,)
-            if (not path and key_text in ignored_keys) or key_path in ignored_paths:
+            if not path and key_text in ignored_keys:
+                continue
+            if key_path in ignored_paths:
+                _validate_ignored_metadata_leaf(value[key], key_path)
                 continue
             normalized[key_text] = _normalize_value(
                 value[key],
@@ -336,6 +339,23 @@ def _normalize_value(
     raise UnsafeEvaluationError(
         f"Unsupported config value type for identity hashing: {type(value)!r}"
     )
+
+
+def _validate_ignored_metadata_leaf(
+    value: Any, path: tuple[str, ...]
+) -> None:
+    if isinstance(value, (dict, list, tuple, set)):
+        raise UnsafeEvaluationError(
+            "Exact forward config nested metadata ignores must point to scalar "
+            f"leaf values; ignored path {path!r} resolves to structured data"
+        )
+    if isinstance(value, np.generic):
+        _validate_ignored_metadata_leaf(value.item(), path)
+        return
+    if isinstance(value, float) and not math.isfinite(value):
+        raise UnsafeEvaluationError(
+            "Exact forward config contains a non-finite numeric value"
+        )
 
 
 def _normalize_ignored_keys(
