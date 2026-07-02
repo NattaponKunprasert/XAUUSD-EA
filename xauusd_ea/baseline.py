@@ -28,6 +28,9 @@ REQUIRED_RUNTIME_BROKER_SPEC_FIELDS = (
     "cost_value_mode",
 )
 VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD = "verified_runtime_spec_fingerprint"
+DEFAULT_BROKER_PROFILE_PATH = (
+    Path(__file__).resolve().parents[1] / "config" / "xm_micro_gold.json"
+)
 VERIFIED_RUNTIME_SPEC_FINGERPRINT_KEYS = (
     "symbol",
     "aliases",
@@ -258,6 +261,7 @@ def require_runtime_broker_spec(
     runtime_spec: Mapping[str, Any] | None,
     *,
     required_fields: tuple[str, ...] = REQUIRED_RUNTIME_BROKER_SPEC_FIELDS,
+    broker_profile_path: str | Path = DEFAULT_BROKER_PROFILE_PATH,
 ) -> dict[str, Any]:
     """Require a verified runtime broker spec before notebook helpers execute."""
     if runtime_spec is None:
@@ -285,13 +289,25 @@ def require_runtime_broker_spec(
         )
 
     normalized = dict(runtime_spec)
-    if fingerprint != _verified_runtime_spec_fingerprint(normalized):
+    broker = load_broker_profile(broker_profile_path)
+    try:
+        verified_runtime_spec = assert_runtime_broker_spec_matches_profile(
+            normalized, broker
+        )
+    except ValueError as exc:
+        raise ValueError(
+            "Runtime broker spec no longer matches the verified "
+            "config/xm_micro_gold.json snapshot; reload and re-verify the "
+            "broker profile before running notebook helpers"
+        ) from exc
+    expected_fingerprint = verified_runtime_spec[VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD]
+    if fingerprint != expected_fingerprint:
         raise ValueError(
             "Runtime broker spec no longer matches the verified "
             "config/xm_micro_gold.json snapshot; reload and re-verify the "
             "broker profile before running notebook helpers"
         )
-    return normalized
+    return verified_runtime_spec
 
 
 def _verified_runtime_spec_fingerprint(runtime_spec: Mapping[str, Any]) -> str:

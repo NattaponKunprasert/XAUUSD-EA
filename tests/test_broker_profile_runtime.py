@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from xauusd_ea.baseline import (
+    _verified_runtime_spec_fingerprint,
     assert_runtime_broker_spec_matches_profile,
     load_broker_profile,
     require_runtime_broker_spec,
@@ -207,6 +208,41 @@ def test_require_runtime_broker_spec_rejects_post_verification_cost_mode_mutatio
         broker,
     )
     checked_runtime_spec["cost_value_mode"] = "price"
+
+    with pytest.raises(
+        ValueError,
+        match="no longer matches the verified config/xm_micro_gold.json snapshot",
+    ):
+        require_runtime_broker_spec(checked_runtime_spec)
+
+
+def test_require_runtime_broker_spec_rejects_forged_fingerprint_for_mutated_values():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    checked_runtime_spec = assert_runtime_broker_spec_matches_profile(
+        {
+            **broker.to_runtime_spec(),
+            "cost_value_mode": "points",
+            "spread_points": broker.spread_baseline_price / broker.point,
+            "commission_per_lot_round_turn": (
+                broker.commission_per_lot_round_turn_usd
+            ),
+            "fee_per_lot_round_turn": broker.fee_per_lot_round_turn_usd,
+            "swap_per_lot": (
+                broker.swap_long_points * broker.point * broker.contract_size
+            ),
+            "swap_long_per_lot": (
+                broker.swap_long_points * broker.point * broker.contract_size
+            ),
+            "swap_short_per_lot": (
+                broker.swap_short_points * broker.point * broker.contract_size
+            ),
+        },
+        broker,
+    )
+    checked_runtime_spec["contract_size"] = 100.0
+    checked_runtime_spec["verified_runtime_spec_fingerprint"] = (
+        _verified_runtime_spec_fingerprint(checked_runtime_spec)
+    )
 
     with pytest.raises(
         ValueError,
