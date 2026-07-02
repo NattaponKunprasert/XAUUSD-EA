@@ -52,6 +52,7 @@ VERIFIED_RUNTIME_SPEC_FINGERPRINT_KEYS = (
     "swap_long_points",
     "swap_short_points",
     "triple_swap_day",
+    "cost_value_mode",
     "spread_points",
     "commission_per_lot_round_turn",
     "fee_per_lot_round_turn",
@@ -185,6 +186,7 @@ def assert_runtime_broker_spec_matches_profile(
     """Fail loudly when an active runtime spec conflicts with the verified config."""
     expected = broker.to_runtime_spec()
     derived_expectations = {
+        "cost_value_mode": "points",
         "spread_points": broker.spread_baseline_price / broker.point,
         "commission_per_lot_round_turn": broker.commission_per_lot_round_turn_usd,
         "fee_per_lot_round_turn": broker.fee_per_lot_round_turn_usd,

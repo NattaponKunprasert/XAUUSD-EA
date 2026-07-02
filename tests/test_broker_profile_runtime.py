@@ -96,6 +96,7 @@ def test_runtime_spec_match_rejects_conflicting_derived_cost_aliases():
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
     conflicting_runtime_spec = {
         **broker.to_runtime_spec(),
+        "cost_value_mode": "price",
         "spread_points": 150.0,
         "commission_per_lot_round_turn": 7.0,
         "swap_long_per_lot": -1.0,
@@ -103,7 +104,7 @@ def test_runtime_spec_match_rejects_conflicting_derived_cost_aliases():
 
     with pytest.raises(
         ValueError,
-        match="spread_points: got 150.0, expected 55.1142857142857",
+        match="cost_value_mode: got 'price', expected 'points'",
     ):
         assert_runtime_broker_spec_matches_profile(conflicting_runtime_spec, broker)
 
@@ -181,6 +182,31 @@ def test_require_runtime_broker_spec_rejects_post_verification_mutation():
         broker,
     )
     checked_runtime_spec["contract_size"] = 100.0
+
+    with pytest.raises(
+        ValueError,
+        match="no longer matches the verified config/xm_micro_gold.json snapshot",
+    ):
+        require_runtime_broker_spec(checked_runtime_spec)
+
+
+def test_require_runtime_broker_spec_rejects_post_verification_cost_mode_mutation():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    checked_runtime_spec = assert_runtime_broker_spec_matches_profile(
+        {
+            **broker.to_runtime_spec(),
+            "cost_value_mode": "points",
+            "spread_points": broker.spread_baseline_price / broker.point,
+            "commission_per_lot_round_turn": (
+                broker.commission_per_lot_round_turn_usd
+            ),
+            "swap_per_lot": (
+                broker.swap_long_points * broker.point * broker.contract_size
+            ),
+        },
+        broker,
+    )
+    checked_runtime_spec["cost_value_mode"] = "price"
 
     with pytest.raises(
         ValueError,
