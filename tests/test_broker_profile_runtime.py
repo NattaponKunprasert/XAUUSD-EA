@@ -53,6 +53,7 @@ def test_runtime_spec_match_accepts_verified_constants_and_keeps_extra_fields():
     assert merged["symbol"] == "GOLDmicro"
     assert merged["lot_precision"] == 2
     assert merged["spread_application"] == "full"
+    assert "verified_runtime_spec_fingerprint" in merged
 
 
 def test_runtime_spec_match_rejects_legacy_xauusd_defaults():
@@ -120,7 +121,7 @@ def test_runtime_spec_match_rejects_missing_required_verified_fields():
 
 def test_require_runtime_broker_spec_accepts_checked_runtime_spec():
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
-    runtime_spec = require_runtime_broker_spec(
+    checked_runtime_spec = assert_runtime_broker_spec_matches_profile(
         {
             **broker.to_runtime_spec(),
             "lot_precision": 2,
@@ -132,11 +133,60 @@ def test_require_runtime_broker_spec_accepts_checked_runtime_spec():
             "swap_per_lot": (
                 broker.swap_long_points * broker.point * broker.contract_size
             ),
-        }
+        },
+        broker,
     )
+    runtime_spec = require_runtime_broker_spec(checked_runtime_spec)
 
     assert runtime_spec["symbol"] == "GOLDmicro"
     assert runtime_spec["spread_points"] == pytest.approx(55.1142857142857)
+
+
+def test_require_runtime_broker_spec_rejects_unverified_runtime_spec_snapshot():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+
+    with pytest.raises(
+        ValueError,
+        match="missing its verified profile fingerprint",
+    ):
+        require_runtime_broker_spec(
+            {
+                **broker.to_runtime_spec(),
+                "cost_value_mode": "points",
+                "spread_points": broker.spread_baseline_price / broker.point,
+                "commission_per_lot_round_turn": (
+                    broker.commission_per_lot_round_turn_usd
+                ),
+                "swap_per_lot": (
+                    broker.swap_long_points * broker.point * broker.contract_size
+                ),
+            }
+        )
+
+
+def test_require_runtime_broker_spec_rejects_post_verification_mutation():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    checked_runtime_spec = assert_runtime_broker_spec_matches_profile(
+        {
+            **broker.to_runtime_spec(),
+            "cost_value_mode": "points",
+            "spread_points": broker.spread_baseline_price / broker.point,
+            "commission_per_lot_round_turn": (
+                broker.commission_per_lot_round_turn_usd
+            ),
+            "swap_per_lot": (
+                broker.swap_long_points * broker.point * broker.contract_size
+            ),
+        },
+        broker,
+    )
+    checked_runtime_spec["contract_size"] = 100.0
+
+    with pytest.raises(
+        ValueError,
+        match="no longer matches the verified config/xm_micro_gold.json snapshot",
+    ):
+        require_runtime_broker_spec(checked_runtime_spec)
 
 
 def test_require_runtime_broker_spec_rejects_missing_verified_runtime_fields():

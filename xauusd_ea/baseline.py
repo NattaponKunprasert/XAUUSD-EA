@@ -27,6 +27,38 @@ REQUIRED_RUNTIME_BROKER_SPEC_FIELDS = (
     "swap_per_lot",
     "cost_value_mode",
 )
+VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD = "verified_runtime_spec_fingerprint"
+VERIFIED_RUNTIME_SPEC_FINGERPRINT_KEYS = (
+    "symbol",
+    "aliases",
+    "digits",
+    "contract_size",
+    "tick_size",
+    "tick_value_usd",
+    "point",
+    "ohlc_price_source",
+    "spread_mode",
+    "spread_baseline_price",
+    "spread_stress_multipliers",
+    "commission_per_lot_round_turn_usd",
+    "fee_per_lot_round_turn_usd",
+    "min_lot",
+    "max_lot",
+    "lot_step",
+    "execution",
+    "account_mode",
+    "initial_capital_usd",
+    "swap_type",
+    "swap_long_points",
+    "swap_short_points",
+    "triple_swap_day",
+    "spread_points",
+    "commission_per_lot_round_turn",
+    "fee_per_lot_round_turn",
+    "swap_per_lot",
+    "swap_long_per_lot",
+    "swap_short_per_lot",
+)
 
 
 @dataclass(frozen=True)
@@ -214,6 +246,9 @@ def assert_runtime_broker_spec_matches_profile(
 
     merged = dict(expected)
     merged.update(runtime_spec)
+    merged[VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD] = (
+        _verified_runtime_spec_fingerprint(merged)
+    )
     return merged
 
 
@@ -239,7 +274,32 @@ def require_runtime_broker_spec(
             "Runtime broker spec is missing verified fields required by active "
             f"notebook helpers: {missing!r}"
         )
-    return dict(runtime_spec)
+    fingerprint = runtime_spec.get(VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD)
+    if not isinstance(fingerprint, str) or not fingerprint:
+        raise ValueError(
+            "Runtime broker spec is missing its verified profile fingerprint; "
+            "load and verify config/xm_micro_gold.json before running notebook "
+            "helpers"
+        )
+
+    normalized = dict(runtime_spec)
+    if fingerprint != _verified_runtime_spec_fingerprint(normalized):
+        raise ValueError(
+            "Runtime broker spec no longer matches the verified "
+            "config/xm_micro_gold.json snapshot; reload and re-verify the "
+            "broker profile before running notebook helpers"
+        )
+    return normalized
+
+
+def _verified_runtime_spec_fingerprint(runtime_spec: Mapping[str, Any]) -> str:
+    payload = {
+        field: runtime_spec[field]
+        for field in VERIFIED_RUNTIME_SPEC_FINGERPRINT_KEYS
+        if field in runtime_spec
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return encoded
 
 
 def load_mt5_csv(filepath: str | Path) -> pd.DataFrame:
