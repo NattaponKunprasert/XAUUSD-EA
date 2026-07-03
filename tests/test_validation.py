@@ -107,9 +107,13 @@ def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost
 
     assert "require_runtime_broker_spec" in source
     assert 'runtime_spec = require_runtime_broker_spec(globals().get("XAUUSD_SPEC"))' in source
+    assert "commission_per_lot = config.get('commission_per_lot')" not in source
     assert "config.get('commission_per_lot', 7.0)" not in source
     assert "config.get('spread_points', 1.5)" not in source
     assert "config.get('swap_per_lot', -1.0)" not in source
+    assert 'friction.get("commission_per_lot", 0.0)' not in source
+    assert 'friction.get("spread_points", 0.0)' not in source
+    assert 'friction.get("swap_per_lot", 0.0)' not in source
     assert "runtime_spec['commission_per_lot_round_turn']" in source
     assert "runtime_spec['spread_points']" in source
     assert "runtime_spec['swap_per_lot']" in source
