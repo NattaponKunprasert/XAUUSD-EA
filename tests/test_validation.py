@@ -91,6 +91,7 @@ def test_active_notebook_routes_broker_spec_through_verified_profile():
     source = _notebook_code_source()
 
     assert "from xauusd_ea.baseline import (" in source
+    assert "merge_runtime_broker_overrides" in source
     assert "load_broker_profile(" in source
     assert "assert_runtime_broker_spec_matches_profile(" in source
     assert "XAUUSD_SPEC = assert_runtime_broker_spec_matches_profile({" in source
@@ -106,6 +107,7 @@ def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost
     source = _notebook_code_source()
 
     assert "require_runtime_broker_spec" in source
+    assert "merge_runtime_broker_overrides" in source
     assert 'runtime_spec = require_runtime_broker_spec(globals().get("XAUUSD_SPEC"))' in source
     assert 'runtime_spec = require_runtime_broker_spec(spec)' in source
     assert "commission_per_lot = config.get('commission_per_lot')" not in source
@@ -115,12 +117,21 @@ def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost
     assert 'friction.get("commission_per_lot", 0.0)' not in source
     assert 'friction.get("spread_points", 0.0)' not in source
     assert 'friction.get("swap_per_lot", 0.0)' not in source
+    assert 'cfg = merge_runtime_broker_overrides(runtime_spec, config, context=\'apply_commission\')' in source
+    assert "context='apply_spread'" in source
+    assert "allow_supported_spread_override=True" in source
+    assert "context='apply_swap_cost'" in source
+    assert 'point = runtime_spec[\'point\']' in source
+    assert 'cost_value_mode = str(runtime_spec[\'cost_value_mode\']).lower()' in source
     assert 'source = str(runtime_spec.get("ohlc_price_source", friction.get("ohlc_price_source", "bid"))).lower()' in source
     assert 'contract_size = float(runtime_spec["contract_size"])' in source
     assert "runtime_spec['commission_per_lot_round_turn']" in source
     assert "runtime_spec['spread_points']" in source
     assert "runtime_spec['swap_per_lot']" in source
     assert 'globals().get("XAUUSD_SPEC", {})' not in source
+    assert "point = config.get('point', runtime_spec['point'])" not in source
+    assert "cost_value_mode = str(config.get('cost_value_mode', runtime_spec['cost_value_mode'])).lower()" not in source
+    assert "daily_swap = config.get('swap_per_lot', runtime_spec['swap_per_lot'])" not in source
 
 
 def test_active_notebook_short_cost_paths_use_directional_swap_and_active_spec():
@@ -134,7 +145,8 @@ def test_active_notebook_short_cost_paths_use_directional_swap_and_active_spec()
         'swap_key = "swap_long_per_lot" if str(direction).lower() == "long" else "swap_short_per_lot"'
         in source
     )
-    assert 'daily_swap = float(friction.get(swap_key, runtime_spec[swap_key]))' in source
+    assert 'context="_swap_cash"' in source
+    assert 'daily_swap = float(merged_friction.get(swap_key, runtime_spec[swap_key]))' in source
     assert '_commission_per_side(open_pos["lot"], friction, broker_spec)' in source
     assert '_swap_cash(open_pos["lot"], bars_held, friction, direction, broker_spec)' in source
     assert "_commission_per_side(lot, friction, broker_spec)" in source
@@ -146,18 +158,23 @@ def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up
     source = _notebook_code_source()
 
     assert 'runtime_spec = require_runtime_broker_spec(globals().get("XAUUSD_SPEC"))' in source
-    assert 'cfg = {**runtime_spec, **(sizing_cfg or {})}' in source
-    assert 'contract_size = config.get("contract_size", runtime_spec["contract_size"])' in source
-    assert 'min_lot = config.get("min_lot", runtime_spec["min_lot"])' in source
-    assert 'contract_size = kwargs.get("contract_size", runtime_spec["contract_size"])' in source
-    assert 'min_lot = kwargs.get("min_lot", runtime_spec["min_lot"])' in source
-    assert 'contract_size = float(cfg.get("contract_size", runtime_spec["contract_size"]))' in source
-    assert 'min_lot = float(cfg.get("min_lot", runtime_spec["min_lot"]))' in source
+    assert 'cfg = merge_runtime_broker_overrides(' in source
+    assert 'context="calculate_position_size"' in source
+    assert 'context="_calculate_lot"' in source
+    assert 'contract_size = cfg["contract_size"]' in source
+    assert 'min_lot = cfg["min_lot"]' in source
+    assert 'contract_size = float(cfg["contract_size"])' in source
+    assert 'min_lot = float(cfg["min_lot"])' in source
     assert 'if lot_size < min_lot:' in source
     assert 'return 0.0' in source
     assert 'steps = int((lot_size - min_lot) / lot_step + 1e-12)' in source
     assert 'round(round(lot / step) * step, precision)' not in source
     assert 'lot_size = max(min_lot, min(lot_size, max_lot))' not in source
+    assert 'contract_size = config.get("contract_size", runtime_spec["contract_size"])' not in source
+    assert 'min_lot = config.get("min_lot", runtime_spec["min_lot"])' not in source
+    assert 'contract_size = kwargs.get("contract_size", runtime_spec["contract_size"])' not in source
+    assert 'min_lot = kwargs.get("min_lot", runtime_spec["min_lot"])' not in source
+    assert 'cfg = {**runtime_spec, **(sizing_cfg or {})}' not in source
 
 
 def test_active_notebook_has_no_stale_legacy_outputs_or_full_sample_fallback_text():

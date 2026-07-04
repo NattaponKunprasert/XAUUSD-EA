@@ -6,6 +6,7 @@ from xauusd_ea.baseline import (
     _verified_runtime_spec_fingerprint,
     assert_runtime_broker_spec_matches_profile,
     load_broker_profile,
+    merge_runtime_broker_overrides,
     require_runtime_broker_spec,
 )
 
@@ -142,6 +143,97 @@ def test_require_runtime_broker_spec_accepts_checked_runtime_spec():
 
     assert runtime_spec["symbol"] == "GOLDmicro"
     assert runtime_spec["spread_points"] == pytest.approx(55.1142857142857)
+
+
+def test_merge_runtime_broker_overrides_rejects_conflicting_verified_fields():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    runtime_spec = assert_runtime_broker_spec_matches_profile(
+        {
+            **broker.to_runtime_spec(),
+            "lot_precision": 2,
+            "cost_value_mode": "points",
+            "spread_points": broker.spread_baseline_price / broker.point,
+            "commission_per_lot_round_turn": (
+                broker.commission_per_lot_round_turn_usd
+            ),
+            "swap_per_lot": (
+                broker.swap_long_points * broker.point * broker.contract_size
+            ),
+        },
+        broker,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="calculate_position_size conflicts with the verified runtime broker spec",
+    ):
+        merge_runtime_broker_overrides(
+            runtime_spec,
+            {"contract_size": 100.0, "fixed_lot": 0.1},
+            context="calculate_position_size",
+        )
+
+
+def test_merge_runtime_broker_overrides_allows_supported_spread_stress_values():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    runtime_spec = assert_runtime_broker_spec_matches_profile(
+        {
+            **broker.to_runtime_spec(),
+            "lot_precision": 2,
+            "cost_value_mode": "points",
+            "spread_points": broker.spread_baseline_price / broker.point,
+            "commission_per_lot_round_turn": (
+                broker.commission_per_lot_round_turn_usd
+            ),
+            "swap_per_lot": (
+                broker.swap_long_points * broker.point * broker.contract_size
+            ),
+        },
+        broker,
+    )
+
+    merged = merge_runtime_broker_overrides(
+        runtime_spec,
+        {
+            "spread_points": runtime_spec["spread_points"] * 1.5,
+            "slippage_mode": "fixed",
+        },
+        context="_spread_price",
+        allow_supported_spread_override=True,
+    )
+
+    assert merged["spread_points"] == pytest.approx(runtime_spec["spread_points"] * 1.5)
+    assert merged["slippage_mode"] == "fixed"
+
+
+def test_merge_runtime_broker_overrides_rejects_unsupported_spread_override():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    runtime_spec = assert_runtime_broker_spec_matches_profile(
+        {
+            **broker.to_runtime_spec(),
+            "lot_precision": 2,
+            "cost_value_mode": "points",
+            "spread_points": broker.spread_baseline_price / broker.point,
+            "commission_per_lot_round_turn": (
+                broker.commission_per_lot_round_turn_usd
+            ),
+            "swap_per_lot": (
+                broker.swap_long_points * broker.point * broker.contract_size
+            ),
+        },
+        broker,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="is not one of the audited baseline/stress spreads",
+    ):
+        merge_runtime_broker_overrides(
+            runtime_spec,
+            {"spread_points": 150.0},
+            context="_spread_price",
+            allow_supported_spread_override=True,
+        )
 
 
 def test_require_runtime_broker_spec_rejects_unverified_runtime_spec_snapshot():

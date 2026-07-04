@@ -63,6 +63,8 @@ VERIFIED_RUNTIME_SPEC_FINGERPRINT_KEYS = (
     "swap_long_per_lot",
     "swap_short_per_lot",
 )
+RUNTIME_SPEC_SPREAD_OVERRIDE_FIELD = "spread_points"
+RUNTIME_SPEC_SPREAD_TOLERANCE = 1e-9
 
 
 @dataclass(frozen=True)
@@ -310,6 +312,52 @@ def require_runtime_broker_spec(
     return verified_runtime_spec
 
 
+def merge_runtime_broker_overrides(
+    runtime_spec: Mapping[str, Any] | None,
+    overrides: Mapping[str, Any] | None,
+    *,
+    context: str,
+    allow_supported_spread_override: bool = False,
+) -> dict[str, Any]:
+    """Merge non-broker overrides while rejecting conflicting broker constants."""
+    verified_runtime_spec = require_runtime_broker_spec(runtime_spec)
+    if overrides is None:
+        return dict(verified_runtime_spec)
+    if not isinstance(overrides, Mapping):
+        raise ValueError(f"{context} overrides must be a mapping")
+
+    merged = dict(verified_runtime_spec)
+    conflicts: list[str] = []
+    for key, value in overrides.items():
+        if key not in verified_runtime_spec:
+            merged[key] = value
+            continue
+        if (
+            allow_supported_spread_override
+            and key == RUNTIME_SPEC_SPREAD_OVERRIDE_FIELD
+            and value != verified_runtime_spec[key]
+        ):
+            merged[key] = _validated_supported_spread_override(
+                value=value,
+                runtime_spec=verified_runtime_spec,
+                context=context,
+            )
+            continue
+        if value != verified_runtime_spec[key]:
+            conflicts.append(
+                f"{key}: got {value!r}, expected {verified_runtime_spec[key]!r}"
+            )
+            continue
+        merged[key] = value
+
+    if conflicts:
+        raise ValueError(
+            f"{context} conflicts with the verified runtime broker spec: "
+            + "; ".join(conflicts)
+        )
+    return merged
+
+
 def _verified_runtime_spec_fingerprint(runtime_spec: Mapping[str, Any]) -> str:
     payload = {
         field: runtime_spec[field]
@@ -318,6 +366,33 @@ def _verified_runtime_spec_fingerprint(runtime_spec: Mapping[str, Any]) -> str:
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return encoded
+
+
+def _validated_supported_spread_override(
+    *,
+    value: Any,
+    runtime_spec: Mapping[str, Any],
+    context: str,
+) -> float:
+    try:
+        candidate = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"{context} spread override must be numeric, got {value!r}"
+        ) from exc
+
+    baseline_points = float(runtime_spec["spread_baseline_price"]) / float(
+        runtime_spec["point"]
+    )
+    for multiplier in runtime_spec["spread_stress_multipliers"]:
+        allowed = baseline_points * float(multiplier)
+        if abs(candidate - allowed) <= RUNTIME_SPEC_SPREAD_TOLERANCE:
+            return allowed
+
+    raise ValueError(
+        f"{context} spread_points override {candidate!r} is not one of the "
+        "audited baseline/stress spreads from config/xm_micro_gold.json"
+    )
 
 
 def load_mt5_csv(filepath: str | Path) -> pd.DataFrame:
