@@ -123,6 +123,25 @@ def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost
     assert 'globals().get("XAUUSD_SPEC", {})' not in source
 
 
+def test_active_notebook_short_cost_paths_use_directional_swap_and_active_spec():
+    source = _notebook_code_source()
+
+    assert (
+        'def _swap_cash(lot: float, bars_held: int, friction: dict, direction: str, spec: dict = XAUUSD_SPEC) -> float:'
+        in source
+    )
+    assert (
+        'swap_key = "swap_long_per_lot" if str(direction).lower() == "long" else "swap_short_per_lot"'
+        in source
+    )
+    assert 'daily_swap = float(friction.get(swap_key, runtime_spec[swap_key]))' in source
+    assert '_commission_per_side(open_pos["lot"], friction, broker_spec)' in source
+    assert '_swap_cash(open_pos["lot"], bars_held, friction, direction, broker_spec)' in source
+    assert "_commission_per_side(lot, friction, broker_spec)" in source
+    assert '_swap_cash(open_pos["lot"], bars_held, friction)' not in source
+    assert '_commission_per_side(open_pos["lot"], friction)' not in source
+
+
 def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up():
     source = _notebook_code_source()
 
