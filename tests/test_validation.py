@@ -103,6 +103,19 @@ def test_active_notebook_routes_broker_spec_through_verified_profile():
     assert '"commission_per_lot_round_turn": 7.0' not in source
 
 
+def test_active_notebook_rejects_raw_broker_spec_dict_merges():
+    source = _notebook_code_source()
+
+    assert "{**XAUUSD_SPEC, **friction}" not in source
+    assert '{**XAUUSD_SPEC, **es["sizing"]}' not in source
+    assert '{**XAUUSD_SPEC, **(cfg2.get("friction", {}) or {})}' not in source
+    assert '{**XAUUSD_SPEC, **(cfg2.get("sizing", {}) or {})}' not in source
+    assert 'context="generate_strategy_configs.friction"' in source
+    assert 'context="generate_strategy_configs.sizing"' in source
+    assert 'context="_with_timeframe_friction.friction"' in source
+    assert 'context="_with_timeframe_friction.sizing"' in source
+
+
 def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost_defaults():
     source = _notebook_code_source()
 
