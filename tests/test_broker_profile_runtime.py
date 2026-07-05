@@ -58,6 +58,25 @@ def test_runtime_spec_match_accepts_verified_constants_and_keeps_extra_fields():
     assert "verified_runtime_spec_fingerprint" in merged
 
 
+def test_runtime_spec_match_fills_verified_derived_runtime_aliases():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+
+    merged = assert_runtime_broker_spec_matches_profile(
+        broker.to_runtime_spec(),
+        broker,
+    )
+
+    assert merged["cost_value_mode"] == "points"
+    assert merged["spread_points"] == pytest.approx(
+        broker.spread_baseline_price / broker.point
+    )
+    assert merged["commission_per_lot_round_turn"] == pytest.approx(0.0)
+    assert merged["fee_per_lot_round_turn"] == pytest.approx(0.0)
+    assert merged["swap_per_lot"] == pytest.approx(-0.9339)
+    assert merged["swap_long_per_lot"] == pytest.approx(-0.9339)
+    assert merged["swap_short_per_lot"] == pytest.approx(0.1074)
+
+
 def test_runtime_spec_match_rejects_legacy_xauusd_defaults():
     broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
     legacy_spec = {
@@ -143,6 +162,8 @@ def test_require_runtime_broker_spec_accepts_checked_runtime_spec():
 
     assert runtime_spec["symbol"] == "GOLDmicro"
     assert runtime_spec["spread_points"] == pytest.approx(55.1142857142857)
+    assert runtime_spec["swap_long_per_lot"] == pytest.approx(-0.9339)
+    assert runtime_spec["swap_short_per_lot"] == pytest.approx(0.1074)
 
 
 def test_merge_runtime_broker_overrides_rejects_conflicting_verified_fields():
@@ -251,8 +272,15 @@ def test_require_runtime_broker_spec_rejects_unverified_runtime_spec_snapshot():
                 "commission_per_lot_round_turn": (
                     broker.commission_per_lot_round_turn_usd
                 ),
+                "fee_per_lot_round_turn": broker.fee_per_lot_round_turn_usd,
                 "swap_per_lot": (
                     broker.swap_long_points * broker.point * broker.contract_size
+                ),
+                "swap_long_per_lot": (
+                    broker.swap_long_points * broker.point * broker.contract_size
+                ),
+                "swap_short_per_lot": (
+                    broker.swap_short_points * broker.point * broker.contract_size
                 ),
             }
         )
@@ -357,3 +385,18 @@ def test_require_runtime_broker_spec_rejects_missing_verified_runtime_fields():
                 "max_lot": 100.0,
             }
         )
+
+
+def test_require_runtime_broker_spec_rejects_missing_directional_swap_aliases():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    checked_runtime_spec = assert_runtime_broker_spec_matches_profile(
+        broker.to_runtime_spec(),
+        broker,
+    )
+    del checked_runtime_spec["swap_long_per_lot"]
+
+    with pytest.raises(
+        ValueError,
+        match="missing verified fields required by active notebook helpers",
+    ):
+        require_runtime_broker_spec(checked_runtime_spec)

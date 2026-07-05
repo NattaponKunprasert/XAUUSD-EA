@@ -24,7 +24,10 @@ REQUIRED_RUNTIME_BROKER_SPEC_FIELDS = (
     "lot_step",
     "spread_points",
     "commission_per_lot_round_turn",
+    "fee_per_lot_round_turn",
     "swap_per_lot",
+    "swap_long_per_lot",
+    "swap_short_per_lot",
     "cost_value_mode",
 )
 VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD = "verified_runtime_spec_fingerprint"
@@ -190,19 +193,7 @@ def assert_runtime_broker_spec_matches_profile(
 ) -> dict[str, Any]:
     """Fail loudly when an active runtime spec conflicts with the verified config."""
     expected = broker.to_runtime_spec()
-    derived_expectations = {
-        "cost_value_mode": "points",
-        "spread_points": broker.spread_baseline_price / broker.point,
-        "commission_per_lot_round_turn": broker.commission_per_lot_round_turn_usd,
-        "fee_per_lot_round_turn": broker.fee_per_lot_round_turn_usd,
-        "swap_per_lot": broker.swap_long_points * broker.point * broker.contract_size,
-        "swap_long_per_lot": (
-            broker.swap_long_points * broker.point * broker.contract_size
-        ),
-        "swap_short_per_lot": (
-            broker.swap_short_points * broker.point * broker.contract_size
-        ),
-    }
+    derived_expectations = _runtime_spec_derived_expectations(broker)
     comparable_fields = (
         "symbol",
         "aliases",
@@ -252,6 +243,7 @@ def assert_runtime_broker_spec_matches_profile(
         )
 
     merged = dict(expected)
+    merged.update(derived_expectations)
     merged.update(runtime_spec)
     merged[VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD] = (
         _verified_runtime_spec_fingerprint(merged)
@@ -366,6 +358,22 @@ def _verified_runtime_spec_fingerprint(runtime_spec: Mapping[str, Any]) -> str:
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return encoded
+
+
+def _runtime_spec_derived_expectations(broker: BrokerProfile) -> dict[str, Any]:
+    return {
+        "cost_value_mode": "points",
+        "spread_points": broker.spread_baseline_price / broker.point,
+        "commission_per_lot_round_turn": broker.commission_per_lot_round_turn_usd,
+        "fee_per_lot_round_turn": broker.fee_per_lot_round_turn_usd,
+        "swap_per_lot": broker.swap_long_points * broker.point * broker.contract_size,
+        "swap_long_per_lot": (
+            broker.swap_long_points * broker.point * broker.contract_size
+        ),
+        "swap_short_per_lot": (
+            broker.swap_short_points * broker.point * broker.contract_size
+        ),
+    }
 
 
 def _validated_supported_spread_override(
