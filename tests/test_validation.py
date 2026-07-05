@@ -188,6 +188,7 @@ def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up
     assert 'contract_size = kwargs.get("contract_size", runtime_spec["contract_size"])' not in source
     assert 'min_lot = kwargs.get("min_lot", runtime_spec["min_lot"])' not in source
     assert 'cfg = {**runtime_spec, **(sizing_cfg or {})}' not in source
+    assert 'lot_raw = cfg.get("fixed_lot", cfg.get("base_lot_size", runtime_spec["min_lot"]))' not in source
 
 
 def test_active_notebook_has_no_stale_legacy_outputs_or_full_sample_fallback_text():
