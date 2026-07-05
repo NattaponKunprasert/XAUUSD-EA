@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Validate sample/holdout boundaries and exact-forward configuration identity after the deterministic single-timeframe smoke baseline has been verified independently on M15, M30, H1, and H4.
+Route the active notebook's sample/holdout and exact-forward paths through the importable validation guards. Keep the verified single-timeframe smoke baseline unchanged while this integration is audited.
 
 ## Verified inputs
 
@@ -24,6 +24,11 @@ Validate sample/holdout boundaries and exact-forward configuration identity afte
 - The M15 smoke path now force-closes any remaining open position at the final available Bid close so end-of-sample capital and trade logs are fully realized
 - The deterministic single-position smoke path is now timeframe-parameterized and independently regression-tested on M15, M30, H1, and H4 using the same Bid/Ask execution, conservative intrabar exits, swap booking, and final-close accounting rules
 - The importable validation layer now fail-fast plans chronological sample/holdout splits and walk-forward windows, with deterministic regression coverage on synthetic data plus real M15/M30/H1/H4 CSV boundaries
+- Broker profile loading now fails loudly when verified XM Micro constants conflict, including the `GOLDmicro` symbol and contract size `1`
+- Short-side Bid/Ask conversion, conservative same-bar SL/TP resolution, and risk-percent lot flooring are covered by deterministic accounting tests
+- `python -m xauusd_ea.reporting` records the fixed M15 baseline/stress smoke run with data, broker-config, and code hashes; it does not use holdout data or rank candidates
+- Local PowerShell bootstrap now detects a broken `.venv`, requires an explicit `-Recreate`, checks every subprocess exit code, and runs the test suite before reporting readiness
+- Local verification on 2026-07-05 passed all 61 tests under Python 3.12.10; the fixed M15 report covered only the earliest 5,000 rows with three predefined spread scenarios and no holdout ranking
 
 ## Broker facts
 
