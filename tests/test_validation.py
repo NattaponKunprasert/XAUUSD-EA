@@ -11,6 +11,7 @@ from xauusd_ea.validation import (
     UnsafeEvaluationError,
     WalkForwardWindow,
     assert_exact_forward_config_identity,
+    assert_expected_research_config_fingerprint,
     plan_walk_forward_windows,
     research_config_fingerprint,
     split_sample_holdout,
@@ -41,6 +42,11 @@ def _notebook_code_source() -> str:
         for cell in notebook.get("cells", [])
         if cell.get("cell_type") == "code"
     )
+
+
+def _notebook_cell_source(index: int) -> str:
+    notebook = json.loads(NOTEBOOK.read_text(encoding="utf-8"))
+    return "".join(notebook["cells"][index].get("source", []))
 
 
 def test_split_sample_holdout_creates_non_overlapping_chronological_ranges():
@@ -80,11 +86,45 @@ def test_active_notebook_walk_forward_does_not_fallback_to_full_sample():
 def test_active_notebook_records_exact_forward_config_fingerprint():
     source = _notebook_code_source()
 
+    assert "assert_expected_research_config_fingerprint(" in source
     assert "sample_cfg = copy.deepcopy(cfg)" in source
     assert "assert_exact_forward_config_identity(sample_cfg, cfg)" in source
     assert "assert_exact_forward_config_identity(cfg, cfg)" not in source
     assert "sample_config_fingerprint" in source
     assert "Sample Config Fingerprint" in source
+    assert "Research Config Fingerprint" in source
+
+
+def test_active_notebook_has_one_production_definition_per_core_behavior():
+    source = _notebook_code_source()
+
+    assert source.count("def run_backtest(") == 1
+    assert source.count("def compute_strategy_metrics(") == 1
+    assert source.count("def clean_strategies(") == 1
+    assert "def legacy_run_backtest(" in source
+    assert "def legacy_compute_strategy_metrics(" in source
+    assert "def legacy_clean_strategies(" in source
+
+
+def test_active_notebook_inspect_path_requires_clean_export():
+    inspect_cell = _notebook_cell_source(19)
+
+    assert "Strict CLEAN strategy CSV not found" in inspect_cell
+    assert 'source_type = "CLEAN"' in inspect_cell
+    assert 'source_type = "SOFT"' not in inspect_cell
+    assert 'source_type = "FALLBACK"' not in inspect_cell
+    assert "elif os.path.exists(soft_csv)" not in inspect_cell
+    assert "glob.glob(os.path.join(OUTPUT_ROOT, f\"**/*{RUN_ID}*.csv\"), recursive=True)" not in inspect_cell
+
+
+def test_active_notebook_swap_path_uses_crossed_rollover_accounting():
+    source = _notebook_code_source()
+
+    assert "crossed_rollover_swap_cash(" in source
+    assert "_book_crossed_rollover_swaps(" in source
+    assert '"last_swap_check_time"' in source
+    assert '"swap_cash": 0.0' in source
+    assert "days_held = float(bars_held) / bars_per_day" not in source
 
 
 def test_active_notebook_routes_broker_spec_through_verified_profile():
@@ -137,10 +177,11 @@ def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost
     assert 'point = runtime_spec[\'point\']' in source
     assert 'cost_value_mode = str(runtime_spec[\'cost_value_mode\']).lower()' in source
     assert 'source = str(runtime_spec.get("ohlc_price_source", friction.get("ohlc_price_source", "bid"))).lower()' in source
-    assert 'contract_size = float(runtime_spec["contract_size"])' in source
+    assert 'contract_size = cfg["contract_size"]' in source
     assert "runtime_spec['commission_per_lot_round_turn']" in source
     assert "runtime_spec['spread_points']" in source
-    assert "runtime_spec['swap_per_lot']" in source
+    assert 'runtime_spec["swap_long_per_lot"]' in source
+    assert 'runtime_spec["swap_short_per_lot"]' in source
     assert 'globals().get("XAUUSD_SPEC", {})' not in source
     assert "point = config.get('point', runtime_spec['point'])" not in source
     assert "cost_value_mode = str(config.get('cost_value_mode', runtime_spec['cost_value_mode'])).lower()" not in source
@@ -151,17 +192,16 @@ def test_active_notebook_short_cost_paths_use_directional_swap_and_active_spec()
     source = _notebook_code_source()
 
     assert (
-        'def _swap_cash(lot: float, bars_held: int, friction: dict, direction: str, spec: dict = XAUUSD_SPEC) -> float:'
-        in source
-    )
-    assert (
-        'swap_key = "swap_long_per_lot" if str(direction).lower() == "long" else "swap_short_per_lot"'
+        'def _swap_cash(\n    lot: float,\n    entry_time,\n    current_time,\n    friction: dict,\n    direction: str,\n    spec: dict = XAUUSD_SPEC,\n    last_swap_check_time=None,\n) -> float:'
         in source
     )
     assert 'context="_swap_cash"' in source
-    assert 'daily_swap = float(merged_friction.get(swap_key, runtime_spec[swap_key]))' in source
+    assert "crossed_rollover_swap_cash(" in source
+    assert 'swap_long_per_lot_usd=float(merged_friction.get("swap_long_per_lot", runtime_spec["swap_long_per_lot"]))' in source
+    assert 'swap_short_per_lot_usd=float(merged_friction.get("swap_short_per_lot", runtime_spec["swap_short_per_lot"]))' in source
+    assert "_book_crossed_rollover_swaps(cash, open_pos, ts, friction, broker_spec)" in source
     assert '_commission_per_side(open_pos["lot"], friction, broker_spec)' in source
-    assert '_swap_cash(open_pos["lot"], bars_held, friction, direction, broker_spec)' in source
+    assert 'swap_cash = float(open_pos.get("swap_cash", 0.0))' in source
     assert "_commission_per_side(lot, friction, broker_spec)" in source
     assert '_swap_cash(open_pos["lot"], bars_held, friction)' not in source
     assert '_commission_per_side(open_pos["lot"], friction)' not in source
@@ -173,11 +213,9 @@ def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up
     assert 'runtime_spec = require_runtime_broker_spec(globals().get("XAUUSD_SPEC"))' in source
     assert 'cfg = merge_runtime_broker_overrides(' in source
     assert 'context="calculate_position_size"' in source
-    assert 'context="_calculate_lot"' in source
+    assert "_calculate_lot(cash, entry_exec, stop_loss, sizing_cfg, atr_value=current_atr, spec=broker_spec)" in source
     assert 'contract_size = cfg["contract_size"]' in source
     assert 'min_lot = cfg["min_lot"]' in source
-    assert 'contract_size = float(cfg["contract_size"])' in source
-    assert 'min_lot = float(cfg["min_lot"])' in source
     assert 'if lot_size < min_lot:' in source
     assert 'return 0.0' in source
     assert 'steps = int((lot_size - min_lot) / lot_step + 1e-12)' in source
@@ -383,6 +421,46 @@ def test_research_config_fingerprint_ignores_runtime_forward_metadata():
         forward_config
     )
     assert_exact_forward_config_identity(sample_config, forward_config)
+
+
+def test_assert_expected_research_config_fingerprint_accepts_matching_hash():
+    sample_config = {
+        "id": "sample_match_001",
+        "timeframe": "M15",
+        "params": {"ema_fast": 12, "ema_slow": 26},
+    }
+    expected = research_config_fingerprint(sample_config)
+
+    assert (
+        assert_expected_research_config_fingerprint(expected, sample_config) == expected
+    )
+
+
+def test_assert_expected_research_config_fingerprint_rejects_missing_hash():
+    sample_config = {
+        "id": "sample_missing_fp",
+        "timeframe": "H1",
+        "params": {"rr": 1.5},
+    }
+
+    with pytest.raises(UnsafeEvaluationError, match="requires the sample-selected"):
+        assert_expected_research_config_fingerprint("", sample_config)
+
+
+def test_assert_expected_research_config_fingerprint_rejects_mutated_config():
+    sample_config = {
+        "id": "sample_fp_002",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "ema_slow": 26, "risk_percent": 0.5},
+    }
+    mutated = {
+        **sample_config,
+        "params": {"ema_fast": 10, "ema_slow": 26, "risk_percent": 0.5},
+    }
+    expected = research_config_fingerprint(sample_config)
+
+    with pytest.raises(UnsafeEvaluationError, match="fingerprint mismatch"):
+        assert_expected_research_config_fingerprint(expected, mutated)
 
 
 def test_exact_forward_config_identity_rejects_research_parameter_changes():

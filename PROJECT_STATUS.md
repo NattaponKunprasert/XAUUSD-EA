@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Route the active notebook broker/runtime constants through `config/xm_micro_gold.json` and fail loudly on legacy XAUUSD defaults before any notebook-driven research run.
+Clear the remaining active-notebook audit blockers around exact-forward identity, rollover-based swap accounting, and fail-closed `CLEAN`-only inspection before any broader notebook-driven research milestone resumes.
 
 ## Verified inputs
 
@@ -27,6 +27,8 @@ Route the active notebook broker/runtime constants through `config/xm_micro_gold
 - The active notebook now routes AUTO sample/forward splits and walk-forward window planning through the importable validation helpers; unsafe WFA planning skips the candidate/timeframe instead of falling back to full-sample evaluation, and exact loaded configs record a validation fingerprint
 - The active notebook now builds its runtime broker spec from `config/xm_micro_gold.json` and validates it before notebook-driven research paths run, preventing silent fallback to legacy XAUUSD contract, lot, spread, or commission defaults
 - The active notebook now quantizes lots against the verified XM Micro min/max/step, skips sub-minimum risk sizes as no-trade, and removes legacy `contract_size=100` sizing/PnL fallbacks from active runtime helpers
+- The active notebook now records `Research Config Fingerprint` values on sampled evaluation rows, rejects missing or mismatched persisted configs before exact forward/WFA runs, and regression-tests those fail-closed identity checks
+- The active notebook now books swap by crossed broker-server rollover timestamps with no intraday charge, Wednesday triple swap, and weekend-skip handling, and the inspect/re-run notebook cell now refuses to auto-promote `SOFT` or generic fallback CSV exports
 
 ## Broker facts
 
@@ -54,7 +56,6 @@ See `config/xm_micro_gold.json` for the machine-readable snapshot and bounded re
 
 ## Known immediate risks
 
-- The notebook contains legacy and newer duplicate function definitions.
 - A legacy Fibonacci function still contains an always-true condition.
 - The newest backtest implementation must be isolated and tested before trusting results.
 - A fixed average spread cannot reproduce the timing of historical spread spikes.

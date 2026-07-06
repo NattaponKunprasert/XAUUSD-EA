@@ -275,6 +275,34 @@ def assert_exact_forward_config_identity(
     )
 
 
+def assert_expected_research_config_fingerprint(
+    expected_fingerprint: str,
+    config: dict[str, Any],
+    *,
+    ignored_keys: set[str] | frozenset[str] | None = None,
+    ignored_paths: set[tuple[str, ...]] | frozenset[tuple[str, ...]] | None = None,
+) -> str:
+    """Fail when a loaded research config no longer matches its recorded hash."""
+    expected = str(expected_fingerprint).strip()
+    if not expected or expected.lower() in {"nan", "none"}:
+        raise UnsafeEvaluationError(
+            "Exact forward evaluation requires the sample-selected "
+            "research_config_fingerprint"
+        )
+
+    actual = research_config_fingerprint(
+        config,
+        ignored_keys=ignored_keys,
+        ignored_paths=ignored_paths,
+    )
+    if actual != expected:
+        raise UnsafeEvaluationError(
+            "Exact forward config fingerprint mismatch; the persisted config no "
+            "longer matches the sample-selected research artifact"
+        )
+    return actual
+
+
 def _normalize_value(
     value: Any,
     *,

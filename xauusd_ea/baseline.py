@@ -548,6 +548,30 @@ def swap_usd(
     return swap_points * broker.point * lot * broker.contract_size * multiplier
 
 
+def rollover_swap_cash_from_rates(
+    *,
+    lot: float,
+    direction: str,
+    rollover_timestamp: pd.Timestamp,
+    swap_long_per_lot_usd: float,
+    swap_short_per_lot_usd: float,
+    triple_swap_day: str,
+) -> float:
+    """Return one crossed-rollover swap cash amount from per-lot USD rates."""
+    if direction not in {"long", "short"}:
+        raise ValueError(
+            f"Unsupported direction {direction!r}; expected 'long' or 'short'"
+        )
+    daily_swap = (
+        float(swap_long_per_lot_usd)
+        if direction == "long"
+        else float(swap_short_per_lot_usd)
+    )
+    multiplier = (
+        3 if pd.Timestamp(rollover_timestamp).day_name() == triple_swap_day else 1
+    )
+    return float(lot) * daily_swap * multiplier
+
 
 def broker_server_rollovers_crossed(
     start: pd.Timestamp, end: pd.Timestamp
@@ -574,6 +598,30 @@ def broker_server_rollovers_crossed(
     return rollovers
 
 
+def crossed_rollover_swap_cash(
+    *,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    lot: float,
+    direction: str,
+    swap_long_per_lot_usd: float,
+    swap_short_per_lot_usd: float,
+    triple_swap_day: str,
+) -> float:
+    """Sum swap cash for all broker-server rollovers crossed in ``(start, end]``."""
+    return sum(
+        rollover_swap_cash_from_rates(
+            lot=lot,
+            direction=direction,
+            rollover_timestamp=rollover,
+            swap_long_per_lot_usd=swap_long_per_lot_usd,
+            swap_short_per_lot_usd=swap_short_per_lot_usd,
+            triple_swap_day=triple_swap_day,
+        )
+        for rollover in broker_server_rollovers_crossed(start, end)
+    )
+
+
 def apply_crossed_rollover_swaps(
     *,
     cash: float,
@@ -583,14 +631,20 @@ def apply_crossed_rollover_swaps(
 ) -> float:
     """Book each newly crossed broker-server rollover exactly once."""
     last_checked = position.get("last_swap_check_time", position["entry_time"])
-    swap_total = 0.0
-    for rollover in broker_server_rollovers_crossed(last_checked, current_time):
-        swap_total += swap_usd(
-            lot=position["lot"],
-            direction="long",
-            broker=broker,
-            rollover_timestamp=rollover,
-        )
+    direction = str(position.get("direction", "long"))
+    swap_total = crossed_rollover_swap_cash(
+        start=last_checked,
+        end=current_time,
+        lot=position["lot"],
+        direction=direction,
+        swap_long_per_lot_usd=(
+            broker.swap_long_points * broker.point * broker.contract_size
+        ),
+        swap_short_per_lot_usd=(
+            broker.swap_short_points * broker.point * broker.contract_size
+        ),
+        triple_swap_day=broker.triple_swap_day,
+    )
     if swap_total:
         position["swap"] += swap_total
         cash += swap_total
