@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Route the active notebook's sample/holdout and exact-forward paths through the importable validation guards. Keep the verified single-timeframe smoke baseline unchanged while this integration is audited.
+Verify the combined notebook-audit and local baseline workflow head after merging `origin/main` into `codex/local-m15-baseline`, keeping exact-forward identity, rollover-based swap accounting, fail-closed `CLEAN` inspection, and deterministic single-timeframe smoke checks aligned on one audited branch.
 
 ## Verified inputs
 
@@ -28,7 +28,12 @@ Route the active notebook's sample/holdout and exact-forward paths through the i
 - Short-side Bid/Ask conversion, conservative same-bar SL/TP resolution, and risk-percent lot flooring are covered by deterministic accounting tests
 - `python -m xauusd_ea.reporting` records the fixed M15 baseline/stress smoke run with data, broker-config, and code hashes; it does not use holdout data or rank candidates
 - Local PowerShell bootstrap now detects a broken `.venv`, requires an explicit `-Recreate`, checks every subprocess exit code, and runs the test suite before reporting readiness
-- Local verification on 2026-07-05 passed all 61 tests under Python 3.12.10; the fixed M15 report covered only the earliest 5,000 rows with three predefined spread scenarios and no holdout ranking
+- The active notebook now routes AUTO sample/forward splits and walk-forward window planning through the importable validation helpers; unsafe WFA planning skips the candidate/timeframe instead of falling back to full-sample evaluation, and exact loaded configs record a validation fingerprint
+- The active notebook now builds its runtime broker spec from `config/xm_micro_gold.json` and validates it before notebook-driven research paths run, preventing silent fallback to legacy XAUUSD contract, lot, spread, or commission defaults
+- The active notebook now quantizes lots against the verified XM Micro min/max/step, skips sub-minimum risk sizes as no-trade, and removes legacy `contract_size=100` sizing/PnL fallbacks from active runtime helpers
+- The active notebook now records `Research Config Fingerprint` values on sampled evaluation rows, rejects missing or mismatched persisted configs before exact forward/WFA runs, and regression-tests those fail-closed identity checks
+- The active notebook now books swap by crossed broker-server rollover timestamps with no intraday charge, Wednesday triple swap, and weekend-skip handling, and the inspect/re-run notebook cell now refuses to auto-promote `SOFT` or generic fallback CSV exports
+- Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 
 ## Broker facts
 
@@ -56,11 +61,8 @@ See `config/xm_micro_gold.json` for the machine-readable snapshot and bounded re
 
 ## Known immediate risks
 
-- The notebook contains legacy and newer duplicate function definitions.
 - A legacy Fibonacci function still contains an always-true condition.
 - The newest backtest implementation must be isolated and tested before trusting results.
-- The active notebook still contains local split/fallback code paths that must be routed through the importable validation helpers before holdout and walk-forward evaluation can be treated as fully audited.
-- The original generic XAUUSD default contract size of 100 is invalid for this XM Micro account.
 - A fixed average spread cannot reproduce the timing of historical spread spikes.
 - Multi-position optimization is invalid until the backtest engine supports multiple concurrent positions.
 

@@ -15,6 +15,59 @@ import pandas as pd
 
 REQUIRED_COLUMNS = ("open", "high", "low", "close", "volume")
 SUPPORTED_BASELINE_TIMEFRAMES = ("M15", "M30", "H1", "H4")
+REQUIRED_RUNTIME_BROKER_SPEC_FIELDS = (
+    "symbol",
+    "contract_size",
+    "point",
+    "min_lot",
+    "max_lot",
+    "lot_step",
+    "spread_points",
+    "commission_per_lot_round_turn",
+    "fee_per_lot_round_turn",
+    "swap_per_lot",
+    "swap_long_per_lot",
+    "swap_short_per_lot",
+    "cost_value_mode",
+)
+VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD = "verified_runtime_spec_fingerprint"
+DEFAULT_BROKER_PROFILE_PATH = (
+    Path(__file__).resolve().parents[1] / "config" / "xm_micro_gold.json"
+)
+VERIFIED_RUNTIME_SPEC_FINGERPRINT_KEYS = (
+    "symbol",
+    "aliases",
+    "digits",
+    "contract_size",
+    "tick_size",
+    "tick_value_usd",
+    "point",
+    "ohlc_price_source",
+    "spread_mode",
+    "spread_baseline_price",
+    "spread_stress_multipliers",
+    "commission_per_lot_round_turn_usd",
+    "fee_per_lot_round_turn_usd",
+    "min_lot",
+    "max_lot",
+    "lot_step",
+    "execution",
+    "account_mode",
+    "initial_capital_usd",
+    "swap_type",
+    "swap_long_points",
+    "swap_short_points",
+    "triple_swap_day",
+    "cost_value_mode",
+    "spread_points",
+    "commission_per_lot_round_turn",
+    "fee_per_lot_round_turn",
+    "swap_per_lot",
+    "swap_long_per_lot",
+    "swap_short_per_lot",
+)
+RUNTIME_SPEC_SPREAD_OVERRIDE_FIELD = "spread_points"
+RUNTIME_SPEC_SPREAD_TOLERANCE = 1e-9
 
 
 @dataclass(frozen=True)
@@ -180,8 +233,10 @@ def assert_runtime_broker_spec_matches_profile(
 ) -> dict[str, Any]:
     """Fail loudly when an active runtime spec conflicts with the verified config."""
     expected = broker.to_runtime_spec()
+    derived_expectations = _runtime_spec_derived_expectations(broker)
     comparable_fields = (
         "symbol",
+        "aliases",
         "digits",
         "contract_size",
         "tick_size",
@@ -189,6 +244,8 @@ def assert_runtime_broker_spec_matches_profile(
         "point",
         "ohlc_price_source",
         "spread_mode",
+        "spread_baseline_price",
+        "spread_stress_multipliers",
         "commission_per_lot_round_turn_usd",
         "fee_per_lot_round_turn_usd",
         "min_lot",
@@ -196,7 +253,10 @@ def assert_runtime_broker_spec_matches_profile(
         "lot_step",
         "execution",
         "account_mode",
+        "initial_capital_usd",
         "swap_type",
+        "swap_long_points",
+        "swap_short_points",
         "triple_swap_day",
     )
     mismatches: list[str] = []
@@ -208,6 +268,12 @@ def assert_runtime_broker_spec_matches_profile(
         wanted = expected[field]
         if actual != wanted:
             mismatches.append(f"{field}: got {actual!r}, expected {wanted!r}")
+    for field, wanted in derived_expectations.items():
+        if field not in runtime_spec:
+            continue
+        actual = runtime_spec[field]
+        if actual != wanted:
+            mismatches.append(f"{field}: got {actual!r}, expected {wanted!r}")
 
     if mismatches:
         joined = "; ".join(mismatches)
@@ -217,8 +283,164 @@ def assert_runtime_broker_spec_matches_profile(
         )
 
     merged = dict(expected)
+    merged.update(derived_expectations)
     merged.update(runtime_spec)
+    merged[VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD] = (
+        _verified_runtime_spec_fingerprint(merged)
+    )
     return merged
+
+
+def require_runtime_broker_spec(
+    runtime_spec: Mapping[str, Any] | None,
+    *,
+    required_fields: tuple[str, ...] = REQUIRED_RUNTIME_BROKER_SPEC_FIELDS,
+    broker_profile_path: str | Path = DEFAULT_BROKER_PROFILE_PATH,
+) -> dict[str, Any]:
+    """Require a verified runtime broker spec before notebook helpers execute."""
+    if runtime_spec is None:
+        raise ValueError(
+            "Runtime broker spec is not initialized; load and verify "
+            "config/xm_micro_gold.json before running notebook helpers"
+        )
+    if not isinstance(runtime_spec, Mapping):
+        raise ValueError(
+            "Runtime broker spec must be a mapping loaded from "
+            "config/xm_micro_gold.json"
+        )
+    missing = [field for field in required_fields if field not in runtime_spec]
+    if missing:
+        raise ValueError(
+            "Runtime broker spec is missing verified fields required by active "
+            f"notebook helpers: {missing!r}"
+        )
+    fingerprint = runtime_spec.get(VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD)
+    if not isinstance(fingerprint, str) or not fingerprint:
+        raise ValueError(
+            "Runtime broker spec is missing its verified profile fingerprint; "
+            "load and verify config/xm_micro_gold.json before running notebook "
+            "helpers"
+        )
+
+    normalized = dict(runtime_spec)
+    broker = load_broker_profile(broker_profile_path)
+    try:
+        verified_runtime_spec = assert_runtime_broker_spec_matches_profile(
+            normalized, broker
+        )
+    except ValueError as exc:
+        raise ValueError(
+            "Runtime broker spec no longer matches the verified "
+            "config/xm_micro_gold.json snapshot; reload and re-verify the "
+            "broker profile before running notebook helpers"
+        ) from exc
+    expected_fingerprint = verified_runtime_spec[VERIFIED_RUNTIME_SPEC_FINGERPRINT_FIELD]
+    if fingerprint != expected_fingerprint:
+        raise ValueError(
+            "Runtime broker spec no longer matches the verified "
+            "config/xm_micro_gold.json snapshot; reload and re-verify the "
+            "broker profile before running notebook helpers"
+        )
+    return verified_runtime_spec
+
+
+def merge_runtime_broker_overrides(
+    runtime_spec: Mapping[str, Any] | None,
+    overrides: Mapping[str, Any] | None,
+    *,
+    context: str,
+    allow_supported_spread_override: bool = False,
+) -> dict[str, Any]:
+    """Merge non-broker overrides while rejecting conflicting broker constants."""
+    verified_runtime_spec = require_runtime_broker_spec(runtime_spec)
+    if overrides is None:
+        return dict(verified_runtime_spec)
+    if not isinstance(overrides, Mapping):
+        raise ValueError(f"{context} overrides must be a mapping")
+
+    merged = dict(verified_runtime_spec)
+    conflicts: list[str] = []
+    for key, value in overrides.items():
+        if key not in verified_runtime_spec:
+            merged[key] = value
+            continue
+        if (
+            allow_supported_spread_override
+            and key == RUNTIME_SPEC_SPREAD_OVERRIDE_FIELD
+            and value != verified_runtime_spec[key]
+        ):
+            merged[key] = _validated_supported_spread_override(
+                value=value,
+                runtime_spec=verified_runtime_spec,
+                context=context,
+            )
+            continue
+        if value != verified_runtime_spec[key]:
+            conflicts.append(
+                f"{key}: got {value!r}, expected {verified_runtime_spec[key]!r}"
+            )
+            continue
+        merged[key] = value
+
+    if conflicts:
+        raise ValueError(
+            f"{context} conflicts with the verified runtime broker spec: "
+            + "; ".join(conflicts)
+        )
+    return merged
+
+
+def _verified_runtime_spec_fingerprint(runtime_spec: Mapping[str, Any]) -> str:
+    payload = {
+        field: runtime_spec[field]
+        for field in VERIFIED_RUNTIME_SPEC_FINGERPRINT_KEYS
+        if field in runtime_spec
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return encoded
+
+
+def _runtime_spec_derived_expectations(broker: BrokerProfile) -> dict[str, Any]:
+    return {
+        "cost_value_mode": "points",
+        "spread_points": broker.spread_baseline_price / broker.point,
+        "commission_per_lot_round_turn": broker.commission_per_lot_round_turn_usd,
+        "fee_per_lot_round_turn": broker.fee_per_lot_round_turn_usd,
+        "swap_per_lot": broker.swap_long_points * broker.point * broker.contract_size,
+        "swap_long_per_lot": (
+            broker.swap_long_points * broker.point * broker.contract_size
+        ),
+        "swap_short_per_lot": (
+            broker.swap_short_points * broker.point * broker.contract_size
+        ),
+    }
+
+
+def _validated_supported_spread_override(
+    *,
+    value: Any,
+    runtime_spec: Mapping[str, Any],
+    context: str,
+) -> float:
+    try:
+        candidate = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"{context} spread override must be numeric, got {value!r}"
+        ) from exc
+
+    baseline_points = float(runtime_spec["spread_baseline_price"]) / float(
+        runtime_spec["point"]
+    )
+    for multiplier in runtime_spec["spread_stress_multipliers"]:
+        allowed = baseline_points * float(multiplier)
+        if abs(candidate - allowed) <= RUNTIME_SPEC_SPREAD_TOLERANCE:
+            return allowed
+
+    raise ValueError(
+        f"{context} spread_points override {candidate!r} is not one of the "
+        "audited baseline/stress spreads from config/xm_micro_gold.json"
+    )
 
 
 def load_mt5_csv(filepath: str | Path) -> pd.DataFrame:
@@ -431,6 +653,30 @@ def swap_usd(
     return swap_points * broker.point * lot * broker.contract_size * multiplier
 
 
+def rollover_swap_cash_from_rates(
+    *,
+    lot: float,
+    direction: str,
+    rollover_timestamp: pd.Timestamp,
+    swap_long_per_lot_usd: float,
+    swap_short_per_lot_usd: float,
+    triple_swap_day: str,
+) -> float:
+    """Return one crossed-rollover swap cash amount from per-lot USD rates."""
+    if direction not in {"long", "short"}:
+        raise ValueError(
+            f"Unsupported direction {direction!r}; expected 'long' or 'short'"
+        )
+    daily_swap = (
+        float(swap_long_per_lot_usd)
+        if direction == "long"
+        else float(swap_short_per_lot_usd)
+    )
+    multiplier = (
+        3 if pd.Timestamp(rollover_timestamp).day_name() == triple_swap_day else 1
+    )
+    return float(lot) * daily_swap * multiplier
+
 
 def broker_server_rollovers_crossed(
     start: pd.Timestamp, end: pd.Timestamp
@@ -457,6 +703,30 @@ def broker_server_rollovers_crossed(
     return rollovers
 
 
+def crossed_rollover_swap_cash(
+    *,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    lot: float,
+    direction: str,
+    swap_long_per_lot_usd: float,
+    swap_short_per_lot_usd: float,
+    triple_swap_day: str,
+) -> float:
+    """Sum swap cash for all broker-server rollovers crossed in ``(start, end]``."""
+    return sum(
+        rollover_swap_cash_from_rates(
+            lot=lot,
+            direction=direction,
+            rollover_timestamp=rollover,
+            swap_long_per_lot_usd=swap_long_per_lot_usd,
+            swap_short_per_lot_usd=swap_short_per_lot_usd,
+            triple_swap_day=triple_swap_day,
+        )
+        for rollover in broker_server_rollovers_crossed(start, end)
+    )
+
+
 def apply_crossed_rollover_swaps(
     *,
     cash: float,
@@ -466,14 +736,20 @@ def apply_crossed_rollover_swaps(
 ) -> float:
     """Book each newly crossed broker-server rollover exactly once."""
     last_checked = position.get("last_swap_check_time", position["entry_time"])
-    swap_total = 0.0
-    for rollover in broker_server_rollovers_crossed(last_checked, current_time):
-        swap_total += swap_usd(
-            lot=position["lot"],
-            direction="long",
-            broker=broker,
-            rollover_timestamp=rollover,
-        )
+    direction = str(position.get("direction", "long"))
+    swap_total = crossed_rollover_swap_cash(
+        start=last_checked,
+        end=current_time,
+        lot=position["lot"],
+        direction=direction,
+        swap_long_per_lot_usd=(
+            broker.swap_long_points * broker.point * broker.contract_size
+        ),
+        swap_short_per_lot_usd=(
+            broker.swap_short_points * broker.point * broker.contract_size
+        ),
+        triple_swap_day=broker.triple_swap_day,
+    )
     if swap_total:
         position["swap"] += swap_total
         cash += swap_total
