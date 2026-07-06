@@ -1,12 +1,8 @@
 name: XAUUSD EA daily agent
 
 on:
-  schedule:
-    # 09:17, 15:17, and 21:17 Asia/Bangkok (UTC+7).
-    # Nonzero minutes reduce start-of-hour queue pressure.
-    - cron: "17 2 * * *"
-    - cron: "17 8 * * *"
-    - cron: "17 14 * * *"
+  # Scheduled cloud-agent runs disabled at the user's request on 2026-07-05.
+  # Keep manual dispatch available for an explicit future decision.
   workflow_dispatch:
 
 permissions:
