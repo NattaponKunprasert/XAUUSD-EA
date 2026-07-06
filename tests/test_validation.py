@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import numpy as np
@@ -10,12 +11,14 @@ from xauusd_ea.validation import (
     UnsafeEvaluationError,
     WalkForwardWindow,
     assert_exact_forward_config_identity,
+    assert_expected_research_config_fingerprint,
     plan_walk_forward_windows,
     research_config_fingerprint,
     split_sample_holdout,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+NOTEBOOK = ROOT / "EA_XAUUSD_29102025_Master_FIXED_V3_9_HOLDOUT_SAFE_EXACT_FORWARD (1).ipynb"
 
 
 def _make_timeframe_df(periods: int = 10) -> pd.DataFrame:
@@ -32,6 +35,20 @@ def _make_timeframe_df(periods: int = 10) -> pd.DataFrame:
     )
 
 
+def _notebook_code_source() -> str:
+    notebook = json.loads(NOTEBOOK.read_text(encoding="utf-8"))
+    return "\n".join(
+        "".join(cell.get("source", []))
+        for cell in notebook.get("cells", [])
+        if cell.get("cell_type") == "code"
+    )
+
+
+def _notebook_cell_source(index: int) -> str:
+    notebook = json.loads(NOTEBOOK.read_text(encoding="utf-8"))
+    return "".join(notebook["cells"][index].get("source", []))
+
+
 def test_split_sample_holdout_creates_non_overlapping_chronological_ranges():
     df = _make_timeframe_df(periods=10)
 
@@ -45,6 +62,186 @@ def test_split_sample_holdout_creates_non_overlapping_chronological_ranges():
     assert split.sample.index.equals(df.index[:7])
     assert split.holdout.index.equals(df.index[7:])
     assert split.sample_end < split.holdout_start
+
+
+def test_active_notebook_routes_holdout_split_through_validation_helper():
+    source = _notebook_code_source()
+
+    assert "from xauusd_ea.validation import (" in source
+    assert "split_sample_holdout(" in source
+    assert "np.clip(sample_ratio" not in source
+    assert "raw_df.iloc[0:0].copy()" not in source
+
+
+def test_active_notebook_walk_forward_does_not_fallback_to_full_sample():
+    source = _notebook_code_source()
+
+    assert "plan_walk_forward_windows(" in source
+    assert "timeframe=tf_name" in source
+    assert "UnsafeEvaluationError" in source
+    assert "FALLBACK_FULL_SAMPLE" not in source
+    assert "falling back to full-sample evaluation" not in source
+
+
+def test_active_notebook_records_exact_forward_config_fingerprint():
+    source = _notebook_code_source()
+
+    assert "assert_expected_research_config_fingerprint(" in source
+    assert "sample_cfg = copy.deepcopy(cfg)" in source
+    assert "assert_exact_forward_config_identity(sample_cfg, cfg)" in source
+    assert "assert_exact_forward_config_identity(cfg, cfg)" not in source
+    assert "sample_config_fingerprint" in source
+    assert "Sample Config Fingerprint" in source
+    assert "Research Config Fingerprint" in source
+
+
+def test_active_notebook_has_one_production_definition_per_core_behavior():
+    source = _notebook_code_source()
+
+    assert source.count("def run_backtest(") == 1
+    assert source.count("def compute_strategy_metrics(") == 1
+    assert source.count("def clean_strategies(") == 1
+    assert "def legacy_run_backtest(" in source
+    assert "def legacy_compute_strategy_metrics(" in source
+    assert "def legacy_clean_strategies(" in source
+
+
+def test_active_notebook_inspect_path_requires_clean_export():
+    inspect_cell = _notebook_cell_source(19)
+
+    assert "Strict CLEAN strategy CSV not found" in inspect_cell
+    assert 'source_type = "CLEAN"' in inspect_cell
+    assert 'source_type = "SOFT"' not in inspect_cell
+    assert 'source_type = "FALLBACK"' not in inspect_cell
+    assert "elif os.path.exists(soft_csv)" not in inspect_cell
+    assert "glob.glob(os.path.join(OUTPUT_ROOT, f\"**/*{RUN_ID}*.csv\"), recursive=True)" not in inspect_cell
+
+
+def test_active_notebook_swap_path_uses_crossed_rollover_accounting():
+    source = _notebook_code_source()
+
+    assert "crossed_rollover_swap_cash(" in source
+    assert "_book_crossed_rollover_swaps(" in source
+    assert '"last_swap_check_time"' in source
+    assert '"swap_cash": 0.0' in source
+    assert "days_held = float(bars_held) / bars_per_day" not in source
+
+
+def test_active_notebook_routes_broker_spec_through_verified_profile():
+    source = _notebook_code_source()
+
+    assert "from xauusd_ea.baseline import (" in source
+    assert "merge_runtime_broker_overrides" in source
+    assert "load_broker_profile(" in source
+    assert "assert_runtime_broker_spec_matches_profile(" in source
+    assert "XAUUSD_SPEC = assert_runtime_broker_spec_matches_profile({" in source
+    assert '"symbol": "XAUUSD"' not in source
+    assert '"contract_size": 100.0' not in source
+    assert '"min_lot": 0.01' not in source
+    assert '"max_lot": 50.0' not in source
+    assert '"spread_points": 150' not in source
+    assert '"commission_per_lot_round_turn": 7.0' not in source
+
+
+def test_active_notebook_rejects_raw_broker_spec_dict_merges():
+    source = _notebook_code_source()
+
+    assert "{**XAUUSD_SPEC, **friction}" not in source
+    assert '{**XAUUSD_SPEC, **es["sizing"]}' not in source
+    assert '{**XAUUSD_SPEC, **(cfg2.get("friction", {}) or {})}' not in source
+    assert '{**XAUUSD_SPEC, **(cfg2.get("sizing", {}) or {})}' not in source
+    assert 'context="generate_strategy_configs.friction"' in source
+    assert 'context="generate_strategy_configs.sizing"' in source
+    assert 'context="_with_timeframe_friction.friction"' in source
+    assert 'context="_with_timeframe_friction.sizing"' in source
+
+
+def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost_defaults():
+    source = _notebook_code_source()
+
+    assert "require_runtime_broker_spec" in source
+    assert "merge_runtime_broker_overrides" in source
+    assert 'runtime_spec = require_runtime_broker_spec(globals().get("XAUUSD_SPEC"))' in source
+    assert 'runtime_spec = require_runtime_broker_spec(spec)' in source
+    assert "commission_per_lot = config.get('commission_per_lot')" not in source
+    assert "config.get('commission_per_lot', 7.0)" not in source
+    assert "config.get('spread_points', 1.5)" not in source
+    assert "config.get('swap_per_lot', -1.0)" not in source
+    assert 'friction.get("commission_per_lot", 0.0)' not in source
+    assert 'friction.get("spread_points", 0.0)' not in source
+    assert 'friction.get("swap_per_lot", 0.0)' not in source
+    assert 'cfg = merge_runtime_broker_overrides(runtime_spec, config, context=\'apply_commission\')' in source
+    assert "context='apply_spread'" in source
+    assert "allow_supported_spread_override=True" in source
+    assert "context='apply_swap_cost'" in source
+    assert 'point = runtime_spec[\'point\']' in source
+    assert 'cost_value_mode = str(runtime_spec[\'cost_value_mode\']).lower()' in source
+    assert 'source = str(runtime_spec.get("ohlc_price_source", friction.get("ohlc_price_source", "bid"))).lower()' in source
+    assert 'contract_size = cfg["contract_size"]' in source
+    assert "runtime_spec['commission_per_lot_round_turn']" in source
+    assert "runtime_spec['spread_points']" in source
+    assert 'runtime_spec["swap_long_per_lot"]' in source
+    assert 'runtime_spec["swap_short_per_lot"]' in source
+    assert 'globals().get("XAUUSD_SPEC", {})' not in source
+    assert "point = config.get('point', runtime_spec['point'])" not in source
+    assert "cost_value_mode = str(config.get('cost_value_mode', runtime_spec['cost_value_mode'])).lower()" not in source
+    assert "daily_swap = config.get('swap_per_lot', runtime_spec['swap_per_lot'])" not in source
+
+
+def test_active_notebook_short_cost_paths_use_directional_swap_and_active_spec():
+    source = _notebook_code_source()
+
+    assert (
+        'def _swap_cash(\n    lot: float,\n    entry_time,\n    current_time,\n    friction: dict,\n    direction: str,\n    spec: dict = XAUUSD_SPEC,\n    last_swap_check_time=None,\n) -> float:'
+        in source
+    )
+    assert 'context="_swap_cash"' in source
+    assert "crossed_rollover_swap_cash(" in source
+    assert 'swap_long_per_lot_usd=float(merged_friction.get("swap_long_per_lot", runtime_spec["swap_long_per_lot"]))' in source
+    assert 'swap_short_per_lot_usd=float(merged_friction.get("swap_short_per_lot", runtime_spec["swap_short_per_lot"]))' in source
+    assert "_book_crossed_rollover_swaps(cash, open_pos, ts, friction, broker_spec)" in source
+    assert '_commission_per_side(open_pos["lot"], friction, broker_spec)' in source
+    assert 'swap_cash = float(open_pos.get("swap_cash", 0.0))' in source
+    assert "_commission_per_side(lot, friction, broker_spec)" in source
+    assert '_swap_cash(open_pos["lot"], bars_held, friction)' not in source
+    assert '_commission_per_side(open_pos["lot"], friction)' not in source
+
+
+def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up():
+    source = _notebook_code_source()
+
+    assert 'runtime_spec = require_runtime_broker_spec(globals().get("XAUUSD_SPEC"))' in source
+    assert 'cfg = merge_runtime_broker_overrides(' in source
+    assert 'context="calculate_position_size"' in source
+    assert "_calculate_lot(cash, entry_exec, stop_loss, sizing_cfg, atr_value=current_atr, spec=broker_spec)" in source
+    assert 'contract_size = cfg["contract_size"]' in source
+    assert 'min_lot = cfg["min_lot"]' in source
+    assert 'if lot_size < min_lot:' in source
+    assert 'return 0.0' in source
+    assert 'steps = int((lot_size - min_lot) / lot_step + 1e-12)' in source
+    assert 'round(round(lot / step) * step, precision)' not in source
+    assert 'lot_size = max(min_lot, min(lot_size, max_lot))' not in source
+    assert 'contract_size = config.get("contract_size", runtime_spec["contract_size"])' not in source
+    assert 'min_lot = config.get("min_lot", runtime_spec["min_lot"])' not in source
+    assert 'contract_size = kwargs.get("contract_size", runtime_spec["contract_size"])' not in source
+    assert 'min_lot = kwargs.get("min_lot", runtime_spec["min_lot"])' not in source
+    assert 'cfg = {**runtime_spec, **(sizing_cfg or {})}' not in source
+    assert 'lot_raw = cfg.get("fixed_lot", cfg.get("base_lot_size", runtime_spec["min_lot"]))' not in source
+
+
+def test_active_notebook_has_no_stale_legacy_outputs_or_full_sample_fallback_text():
+    notebook_text = NOTEBOOK.read_text(encoding="utf-8")
+
+    assert "falling back to full-sample evaluation" not in notebook_text
+    assert "'symbol': 'XAUUSD'" not in notebook_text
+    assert "'contract_size': 100.0" not in notebook_text
+    assert "'min_lot': 0.01" not in notebook_text
+    assert "'max_lot': 50.0" not in notebook_text
+    assert "'spread_points': 1.5" not in notebook_text
+    assert "'spread_points': 150" not in notebook_text
+    assert "'commission_per_lot': 7.0" not in notebook_text
+    assert "'commission_per_lot_round_turn': 7.0" not in notebook_text
+    assert "'swap_per_lot': -1.0" not in notebook_text
 
 
 @pytest.mark.parametrize(
@@ -226,6 +423,46 @@ def test_research_config_fingerprint_ignores_runtime_forward_metadata():
     assert_exact_forward_config_identity(sample_config, forward_config)
 
 
+def test_assert_expected_research_config_fingerprint_accepts_matching_hash():
+    sample_config = {
+        "id": "sample_match_001",
+        "timeframe": "M15",
+        "params": {"ema_fast": 12, "ema_slow": 26},
+    }
+    expected = research_config_fingerprint(sample_config)
+
+    assert (
+        assert_expected_research_config_fingerprint(expected, sample_config) == expected
+    )
+
+
+def test_assert_expected_research_config_fingerprint_rejects_missing_hash():
+    sample_config = {
+        "id": "sample_missing_fp",
+        "timeframe": "H1",
+        "params": {"rr": 1.5},
+    }
+
+    with pytest.raises(UnsafeEvaluationError, match="requires the sample-selected"):
+        assert_expected_research_config_fingerprint("", sample_config)
+
+
+def test_assert_expected_research_config_fingerprint_rejects_mutated_config():
+    sample_config = {
+        "id": "sample_fp_002",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "ema_slow": 26, "risk_percent": 0.5},
+    }
+    mutated = {
+        **sample_config,
+        "params": {"ema_fast": 10, "ema_slow": 26, "risk_percent": 0.5},
+    }
+    expected = research_config_fingerprint(sample_config)
+
+    with pytest.raises(UnsafeEvaluationError, match="fingerprint mismatch"):
+        assert_expected_research_config_fingerprint(expected, mutated)
+
+
 def test_exact_forward_config_identity_rejects_research_parameter_changes():
     sample_config = {
         "id": "sample_H1_002",
@@ -281,19 +518,107 @@ def test_exact_forward_config_identity_allows_explicit_nested_metadata_exemption
         "id": "sample_M30_004",
         "timeframe": "M30",
         "params": {"ema_fast": 12, "window_id": 5},
-        "filters": {"session": {"window_id": "london_open"}},
+        "runtime_metadata": {"loaded_window_id": "london_open"},
     }
     forward_config = {
         **sample_config,
         "params": {"ema_fast": 12, "window_id": 5},
-        "filters": {"session": {"window_id": "new_runtime_window"}},
+        "runtime_metadata": {"loaded_window_id": "new_runtime_window"},
     }
 
     assert_exact_forward_config_identity(
         sample_config,
         forward_config,
-        ignored_paths={("filters", "session", "window_id")},
+        ignored_paths={("runtime_metadata", "loaded_window_id")},
     )
+
+
+def test_exact_forward_config_identity_rejects_structured_metadata_exemptions():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+        "runtime_metadata": {
+            "loaded_window": {"id": "london_open", "ema_fast": 12},
+        },
+    }
+    forward_config = {
+        **sample_config,
+        "runtime_metadata": {
+            "loaded_window": {"id": "new_runtime_window", "ema_fast": 10},
+        },
+    }
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="must point to scalar leaf values"
+    ):
+        assert_exact_forward_config_identity(
+            sample_config,
+            forward_config,
+            ignored_paths={("runtime_metadata", "loaded_window")},
+        )
+
+
+def test_exact_forward_config_identity_rejects_broad_metadata_root_exemptions():
+    with pytest.raises(UnsafeEvaluationError, match="target specific metadata fields"):
+        assert_exact_forward_config_identity(
+            {"runtime_metadata": {"loaded_window_id": "a"}},
+            {"runtime_metadata": {"loaded_window_id": "b"}},
+            ignored_paths={("runtime_metadata",)},
+        )
+
+
+def test_exact_forward_config_identity_rejects_nested_exemptions_for_research_paths():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 10, "window_id": 5},
+    }
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="nested ignores are restricted to audited runtime metadata roots"
+    ):
+        assert_exact_forward_config_identity(
+            sample_config,
+            forward_config,
+            ignored_paths={("params", "ema_fast")},
+        )
+
+
+def test_exact_forward_config_identity_rejects_top_level_research_key_exemptions():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 10},
+    }
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="audited top-level runtime metadata"
+    ):
+        assert_exact_forward_config_identity(
+            sample_config,
+            forward_config,
+            ignored_keys={"params"},
+        )
+
+
+def test_exact_forward_config_identity_ignores_recorded_fingerprint_metadata():
+    sample_config = {"id": "sample_M15_005", "timeframe": "M15", "params": {"ema_fast": 12}}
+    forward_config = {
+        **sample_config,
+        "sample_strategy_id": "sample_M15_005",
+        "sample_config_fingerprint": "sha256:placeholder",
+    }
+
+    assert_exact_forward_config_identity(sample_config, forward_config)
 
 
 def test_exact_forward_config_identity_rejects_non_finite_values():

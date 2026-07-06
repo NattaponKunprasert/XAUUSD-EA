@@ -6,6 +6,7 @@ import pytest
 import xauusd_ea.baseline as baseline
 from xauusd_ea.baseline import (
     broker_server_rollovers_crossed,
+    crossed_rollover_swap_cash,
     entry_ask_from_bid_close,
     fixed_baseline_smoke_configs,
     fixed_m15_smoke_configs,
@@ -15,6 +16,7 @@ from xauusd_ea.baseline import (
     normalize_baseline_timeframe,
     pnl_usd,
     resolve_long_exit_bid,
+    rollover_swap_cash_from_rates,
     run_baseline_smoke,
     run_m15_baseline_smoke,
     swap_usd,
@@ -152,6 +154,64 @@ def test_swap_points_use_micro_contract_size_and_wednesday_triple():
     assert swap_usd(
         lot=0.10, direction="long", broker=broker, rollover_timestamp=wednesday_rollover
     ) == pytest.approx(-0.28017)
+
+
+def test_rollover_swap_cash_from_rates_matches_profile_derived_daily_values():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    short_daily_usd = broker.swap_short_points * broker.point * broker.contract_size
+
+    assert rollover_swap_cash_from_rates(
+        lot=0.10,
+        direction="short",
+        rollover_timestamp=pd.Timestamp("2023-01-11 00:00"),
+        swap_long_per_lot_usd=(
+            broker.swap_long_points * broker.point * broker.contract_size
+        ),
+        swap_short_per_lot_usd=short_daily_usd,
+        triple_swap_day=broker.triple_swap_day,
+    ) == pytest.approx(short_daily_usd * 0.10 * 3.0)
+
+
+def test_crossed_rollover_swap_cash_uses_midnight_boundaries_and_skips_intraday():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    long_daily_usd = broker.swap_long_points * broker.point * broker.contract_size
+    short_daily_usd = broker.swap_short_points * broker.point * broker.contract_size
+
+    assert crossed_rollover_swap_cash(
+        start=pd.Timestamp("2023-01-02 23:45"),
+        end=pd.Timestamp("2023-01-03 00:15"),
+        lot=0.10,
+        direction="long",
+        swap_long_per_lot_usd=long_daily_usd,
+        swap_short_per_lot_usd=short_daily_usd,
+        triple_swap_day=broker.triple_swap_day,
+    ) == pytest.approx(-0.09339)
+    assert crossed_rollover_swap_cash(
+        start=pd.Timestamp("2023-01-03 00:00"),
+        end=pd.Timestamp("2023-01-03 23:45"),
+        lot=0.10,
+        direction="long",
+        swap_long_per_lot_usd=long_daily_usd,
+        swap_short_per_lot_usd=short_daily_usd,
+        triple_swap_day=broker.triple_swap_day,
+    ) == pytest.approx(0.0)
+
+
+def test_crossed_rollover_swap_cash_skips_weekends_and_applies_wednesday_triple():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    long_daily_usd = broker.swap_long_points * broker.point * broker.contract_size
+    short_daily_usd = broker.swap_short_points * broker.point * broker.contract_size
+
+    expected = short_daily_usd * 0.10 * 5.0
+    assert crossed_rollover_swap_cash(
+        start=pd.Timestamp("2023-01-10 23:45"),
+        end=pd.Timestamp("2023-01-13 00:15"),
+        lot=0.10,
+        direction="short",
+        swap_long_per_lot_usd=long_daily_usd,
+        swap_short_per_lot_usd=short_daily_usd,
+        triple_swap_day=broker.triple_swap_day,
+    ) == pytest.approx(expected)
 
 
 def test_broker_server_rollovers_crossed_uses_modeled_server_midnights():

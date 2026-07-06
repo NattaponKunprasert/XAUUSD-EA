@@ -8,6 +8,7 @@ from .baseline import (
 from .validation import (
     SampleHoldoutSplit,
     UnsafeEvaluationError,
+    assert_expected_research_config_fingerprint,
     WalkForwardWindow,
     assert_exact_forward_config_identity,
     plan_walk_forward_windows,
@@ -20,6 +21,7 @@ __all__ = [
     "BrokerProfile",
     "SampleHoldoutSplit",
     "UnsafeEvaluationError",
+    "assert_expected_research_config_fingerprint",
     "assert_runtime_broker_spec_matches_profile",
     "WalkForwardWindow",
     "assert_exact_forward_config_identity",

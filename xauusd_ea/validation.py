@@ -23,9 +23,16 @@ DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS = frozenset(
         "final_capital",
         "metrics",
         "sample_config_path",
+        "sample_config_fingerprint",
         "sample_rank",
         "sample_strategy_id",
         "trades",
+    }
+)
+ALLOWED_CONFIG_IDENTITY_NESTED_METADATA_ROOTS = frozenset(
+    {
+        "runtime_metadata",
+        "validation_metadata",
     }
 )
 
@@ -214,12 +221,8 @@ def research_config_payload(
     ignored_paths: set[tuple[str, ...]] | frozenset[tuple[str, ...]] | None = None,
 ) -> dict[str, Any]:
     """Return a canonical config payload suitable for identity hashing."""
-    active_ignored_keys = (
-        DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS
-        if ignored_keys is None
-        else frozenset(ignored_keys)
-    )
-    active_ignored_paths = frozenset() if ignored_paths is None else frozenset(ignored_paths)
+    active_ignored_keys = _normalize_ignored_keys(ignored_keys)
+    active_ignored_paths = _normalize_ignored_paths(ignored_paths)
     return _normalize_value(
         config,
         ignored_keys=active_ignored_keys,
@@ -272,6 +275,34 @@ def assert_exact_forward_config_identity(
     )
 
 
+def assert_expected_research_config_fingerprint(
+    expected_fingerprint: str,
+    config: dict[str, Any],
+    *,
+    ignored_keys: set[str] | frozenset[str] | None = None,
+    ignored_paths: set[tuple[str, ...]] | frozenset[tuple[str, ...]] | None = None,
+) -> str:
+    """Fail when a loaded research config no longer matches its recorded hash."""
+    expected = str(expected_fingerprint).strip()
+    if not expected or expected.lower() in {"nan", "none"}:
+        raise UnsafeEvaluationError(
+            "Exact forward evaluation requires the sample-selected "
+            "research_config_fingerprint"
+        )
+
+    actual = research_config_fingerprint(
+        config,
+        ignored_keys=ignored_keys,
+        ignored_paths=ignored_paths,
+    )
+    if actual != expected:
+        raise UnsafeEvaluationError(
+            "Exact forward config fingerprint mismatch; the persisted config no "
+            "longer matches the sample-selected research artifact"
+        )
+    return actual
+
+
 def _normalize_value(
     value: Any,
     *,
@@ -284,7 +315,10 @@ def _normalize_value(
         for key in sorted(value, key=lambda item: str(item)):
             key_text = str(key)
             key_path = path + (key_text,)
-            if (not path and key_text in ignored_keys) or key_path in ignored_paths:
+            if not path and key_text in ignored_keys:
+                continue
+            if key_path in ignored_paths:
+                _validate_ignored_metadata_leaf(value[key], key_path)
                 continue
             normalized[key_text] = _normalize_value(
                 value[key],
@@ -333,3 +367,69 @@ def _normalize_value(
     raise UnsafeEvaluationError(
         f"Unsupported config value type for identity hashing: {type(value)!r}"
     )
+
+
+def _validate_ignored_metadata_leaf(
+    value: Any, path: tuple[str, ...]
+) -> None:
+    if isinstance(value, (dict, list, tuple, set)):
+        raise UnsafeEvaluationError(
+            "Exact forward config nested metadata ignores must point to scalar "
+            f"leaf values; ignored path {path!r} resolves to structured data"
+        )
+    if isinstance(value, np.generic):
+        _validate_ignored_metadata_leaf(value.item(), path)
+        return
+    if isinstance(value, float) and not math.isfinite(value):
+        raise UnsafeEvaluationError(
+            "Exact forward config contains a non-finite numeric value"
+        )
+
+
+def _normalize_ignored_keys(
+    ignored_keys: set[str] | frozenset[str] | None,
+) -> frozenset[str]:
+    if ignored_keys is None:
+        return DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS
+
+    normalized = frozenset(str(key) for key in ignored_keys)
+    disallowed = normalized - DEFAULT_CONFIG_IDENTITY_IGNORED_TOP_LEVEL_KEYS
+    if disallowed:
+        raise UnsafeEvaluationError(
+            "Exact forward config ignores only audited top-level runtime metadata; "
+            f"disallowed keys: {sorted(disallowed)!r}"
+        )
+    return normalized
+
+
+def _normalize_ignored_paths(
+    ignored_paths: set[tuple[str, ...]] | frozenset[tuple[str, ...]] | None,
+) -> frozenset[tuple[str, ...]]:
+    if ignored_paths is None:
+        return frozenset()
+
+    normalized = frozenset(
+        tuple(str(part) for part in path) for path in ignored_paths
+    )
+    invalid_paths = [path for path in normalized if not path]
+    if invalid_paths:
+        raise UnsafeEvaluationError("Ignored config paths must not be empty")
+    broad_metadata_roots = sorted(path for path in normalized if len(path) < 2)
+    if broad_metadata_roots:
+        raise UnsafeEvaluationError(
+            "Exact forward config nested ignores must target specific metadata "
+            f"fields, not whole roots: {broad_metadata_roots!r}"
+        )
+
+    disallowed = sorted(
+        path
+        for path in normalized
+        if path[0] not in ALLOWED_CONFIG_IDENTITY_NESTED_METADATA_ROOTS
+    )
+    if disallowed:
+        raise UnsafeEvaluationError(
+            "Exact forward config nested ignores are restricted to audited runtime "
+            f"metadata roots {sorted(ALLOWED_CONFIG_IDENTITY_NESTED_METADATA_ROOTS)!r}; "
+            f"disallowed paths: {disallowed!r}"
+        )
+    return normalized
