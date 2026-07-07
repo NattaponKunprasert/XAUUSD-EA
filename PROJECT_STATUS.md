@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Extend the deterministic single-position baseline runner to cover short trades through the same timeframe-parameterized path, while preserving the fixed long-only report configurations and their audited results.
+Isolate Fibonacci target behavior so the active notebook uses one importable, closed-bar implementation and the legacy path cannot silently select unconfigured levels.
 
 ## Verified inputs
 
@@ -34,8 +34,10 @@ Extend the deterministic single-position baseline runner to cover short trades t
 - The active notebook now quantizes lots against the verified XM Micro min/max/step, skips sub-minimum risk sizes as no-trade, and removes legacy `contract_size=100` sizing/PnL fallbacks from active runtime helpers
 - The active notebook now records `Research Config Fingerprint` values on sampled evaluation rows, rejects missing or mismatched persisted configs before exact forward/WFA runs, and regression-tests those fail-closed identity checks
 - The active notebook now books swap by crossed broker-server rollover timestamps with no intraday charge, Wednesday triple swap, and weekend-skip handling, and the inspect/re-run notebook cell now refuses to auto-promote `SOFT` or generic fallback CSV exports
+- Fibonacci extension targets now come from an importable closed-bar helper that uses only data through the signal bar, validates configured extension levels, and handles long/short direction explicitly; the isolated legacy path no longer contains an always-true level selector or reads levels from indicator parameters
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
+- Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
 
 ## Broker facts
 
@@ -63,7 +65,6 @@ See `config/xm_micro_gold.json` for the machine-readable snapshot and bounded re
 
 ## Known immediate risks
 
-- A legacy Fibonacci function still contains an always-true condition.
 - The newest backtest implementation must be isolated and tested before trusting results.
 - A fixed average spread cannot reproduce the timing of historical spread spikes.
 - Multi-position optimization is invalid until the backtest engine supports multiple concurrent positions.

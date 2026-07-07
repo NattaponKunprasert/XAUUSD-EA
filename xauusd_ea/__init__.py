@@ -5,6 +5,7 @@ from .baseline import (
     assert_runtime_broker_spec_matches_profile,
     load_broker_profile,
 )
+from .exits import fibonacci_extension_target
 from .validation import (
     SampleHoldoutSplit,
     UnsafeEvaluationError,
@@ -19,6 +20,7 @@ from .validation import (
 
 __all__ = [
     "BrokerProfile",
+    "fibonacci_extension_target",
     "SampleHoldoutSplit",
     "UnsafeEvaluationError",
     "assert_expected_research_config_fingerprint",

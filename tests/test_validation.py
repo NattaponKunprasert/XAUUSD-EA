@@ -106,6 +106,20 @@ def test_active_notebook_has_one_production_definition_per_core_behavior():
     assert "def legacy_clean_strategies(" in source
 
 
+def test_active_notebook_isolates_legacy_fibonacci_target_and_uses_canonical_helper():
+    source = _notebook_code_source()
+
+    assert "if m in fib_levels or True" not in source
+    assert "def calculate_fib_target(" not in source
+    assert "def legacy_calculate_fib_target(" in source
+    assert (
+        "from xauusd_ea.exits import fibonacci_extension_target as "
+        "_calculate_fib_target_safe" in source
+    )
+    assert 'config["exit"].get("fib_levels", [1.618])' in source
+    assert "config[\"params\"].get(\"Fibonacci\", {})" not in source
+
+
 def test_active_notebook_inspect_path_requires_clean_export():
     inspect_cell = _notebook_cell_source(19)
 
