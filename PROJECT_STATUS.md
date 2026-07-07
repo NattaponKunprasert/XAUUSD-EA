@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Isolate Fibonacci target behavior so the active notebook uses one importable, closed-bar implementation and the legacy path cannot silently select unconfigured levels.
+Close the active notebook's Fibonacci and next-bar entry-input audit gaps so targets, ATR stops, and sizing use only information available before entry execution.
 
 ## Verified inputs
 
@@ -35,9 +35,11 @@ Isolate Fibonacci target behavior so the active notebook uses one importable, cl
 - The active notebook now records `Research Config Fingerprint` values on sampled evaluation rows, rejects missing or mismatched persisted configs before exact forward/WFA runs, and regression-tests those fail-closed identity checks
 - The active notebook now books swap by crossed broker-server rollover timestamps with no intraday charge, Wednesday triple swap, and weekend-skip handling, and the inspect/re-run notebook cell now refuses to auto-promote `SOFT` or generic fallback CSV exports
 - Fibonacci extension targets now come from an importable closed-bar helper that uses only data through the signal bar, validates configured extension levels, and handles long/short direction explicitly; the isolated legacy path no longer contains an always-true level selector or reads levels from indicator parameters
+- Next-bar entries now freeze ATR at the fully closed signal bar before deriving the stop and lot size; the active engine also defines its sizing bridge explicitly instead of depending on an undefined notebook-runtime helper
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
+- Local verification on 2026-07-07 passed the focused validation/exit suite (48 tests) and full `python -m pytest -q` (110 tests) after closing the entry-bar ATR leakage and adding a deterministic mutation regression
 
 ## Broker facts
 
