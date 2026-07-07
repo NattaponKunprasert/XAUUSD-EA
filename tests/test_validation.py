@@ -1,11 +1,31 @@
+import ast
+import copy
+from datetime import datetime
+import glob
+import hashlib
+import itertools
 import json
+import math
+import os
+import pickle
 from pathlib import Path
+import random
+import time
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from xauusd_ea.baseline import load_mt5_csv
+from xauusd_ea.baseline import (
+    assert_runtime_broker_spec_matches_profile,
+    crossed_rollover_swap_cash,
+    load_broker_profile,
+    load_mt5_csv,
+    merge_runtime_broker_overrides,
+    require_runtime_broker_spec,
+)
+from xauusd_ea.exits import fibonacci_extension_target
 from xauusd_ea.validation import (
     SampleHoldoutSplit,
     UnsafeEvaluationError,
@@ -47,6 +67,92 @@ def _notebook_code_source() -> str:
 def _notebook_cell_source(index: int) -> str:
     notebook = json.loads(NOTEBOOK.read_text(encoding="utf-8"))
     return "".join(notebook["cells"][index].get("source", []))
+
+
+def _active_notebook_run_backtest():
+    """Load the active engine definition without executing notebook orchestration."""
+    source = _notebook_cell_source(18)
+    tree = ast.parse(source)
+    required_assignments = {"REQUIRED", "ALIASES", "DEFAULTS"}
+    nodes = []
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            nodes.append(node)
+        elif isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id in required_assignments
+            for target in node.targets
+        ):
+            nodes.append(node)
+    sizing_tree = ast.parse(_notebook_cell_source(7))
+    nodes.insert(
+        0,
+        next(
+            node
+            for node in sizing_tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "calculate_position_size"
+        ),
+    )
+
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    runtime_spec = assert_runtime_broker_spec_matches_profile(
+        {
+            **broker.to_runtime_spec(),
+            "lot_precision": 2,
+            "spread_application": "full",
+            "cost_value_mode": "points",
+            "spread_points": broker.spread_baseline_price / broker.point,
+            "commission_per_lot_round_turn": 0.0,
+            "fee_per_lot_round_turn": 0.0,
+            "swap_per_lot": broker.swap_long_points * broker.point,
+            "swap_long_per_lot": broker.swap_long_points * broker.point,
+            "swap_short_per_lot": broker.swap_short_points * broker.point,
+        },
+        broker,
+    )
+    namespace = {
+        "Any": Any,
+        "Dict": Dict,
+        "Iterable": Iterable,
+        "List": List,
+        "Optional": Optional,
+        "Sequence": Sequence,
+        "Tuple": Tuple,
+        "datetime": datetime,
+        "glob": glob,
+        "hashlib": hashlib,
+        "itertools": itertools,
+        "json": json,
+        "math": math,
+        "os": os,
+        "pickle": pickle,
+        "random": random,
+        "time": time,
+        "copy": copy,
+        "np": np,
+        "pd": pd,
+        "INITIAL_CAPITAL": 1000.0,
+        "XAUUSD_SPEC": runtime_spec,
+        "EXECUTION_MODE": "next_bar_open",
+        "DEBUG_SIGNAL_COUNTS": False,
+        "SAME_BAR_EXIT_POLICY": "SL_FIRST",
+        "SKIP_RISK_LOT_BELOW_MIN": True,
+        "crossed_rollover_swap_cash": crossed_rollover_swap_cash,
+        "merge_runtime_broker_overrides": merge_runtime_broker_overrides,
+        "require_runtime_broker_spec": require_runtime_broker_spec,
+        "_calculate_fib_target_safe": fibonacci_extension_target,
+        "_safe_passes_filters": lambda *args, **kwargs: True,
+        "_valid_stop_target": lambda *args, **kwargs: True,
+        "_intrabar_stop_target": lambda *args, **kwargs: (None, None),
+        "_gross_pnl": lambda entry, exit_price, lot, direction, spec: (
+            (exit_price - entry) if direction == "long" else (entry - exit_price)
+        )
+        * lot
+        * spec["contract_size"],
+    }
+    module = ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[]))
+    exec(compile(module, "<active-notebook-functions>", "exec"), namespace)
+    return namespace["run_backtest"]
 
 
 def test_split_sample_holdout_creates_non_overlapping_chronological_ranges():
@@ -104,6 +210,83 @@ def test_active_notebook_has_one_production_definition_per_core_behavior():
     assert "def legacy_run_backtest(" in source
     assert "def legacy_compute_strategy_metrics(" in source
     assert "def legacy_clean_strategies(" in source
+
+
+def test_active_notebook_isolates_legacy_fibonacci_target_and_uses_canonical_helper():
+    source = _notebook_code_source()
+
+    assert "if m in fib_levels or True" not in source
+    assert "def calculate_fib_target(" not in source
+    assert "def legacy_calculate_fib_target(" in source
+    assert (
+        "from xauusd_ea.exits import fibonacci_extension_target as "
+        "_calculate_fib_target_safe" in source
+    )
+    assert 'config["exit"].get("fib_levels", [1.618])' in source
+    assert "config[\"params\"].get(\"Fibonacci\", {})" not in source
+
+
+def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
+    source = _notebook_cell_source(18)
+    assert "entry_atr = float(atr_values[signal_i])" in source
+    assert "atr_value=entry_atr" in source
+    assert "def _calculate_lot(" in source
+
+    run_backtest = _active_notebook_run_backtest()
+    index = pd.date_range("2025-01-01", periods=6, freq="15min")
+    original = pd.DataFrame(
+        {
+            "open": [100.0] * 6,
+            "high": [101.0, 101.5, 102.0, 100.2, 100.2, 100.2],
+            "low": [99.0, 99.5, 100.0, 99.8, 99.8, 99.8],
+            "close": [100.0, 101.0, 101.0, 100.0, 100.0, 100.0],
+            "volume": [1.0] * 6,
+        },
+        index=index,
+    )
+    mutated = original.copy()
+    mutated.loc[index[3], ["high", "low", "close"]] = [150.0, 50.0, 130.0]
+
+    long_signal = lambda frame: pd.Series(
+        [False, False, True, False, False, False], index=frame.index
+    )
+    short_signal = lambda frame: pd.Series(False, index=frame.index)
+    config = {
+        "id": "closed_bar_entry_inputs",
+        "entry": {
+            "long_condition": long_signal,
+            "short_condition": short_signal,
+        },
+        "params": {"ATR": {"period": 2}},
+        "exit": {
+            "atr_period": 2,
+            "atr_multiplier": 1.0,
+            "sl_type": "atr",
+            "tp_type": "fib",
+            "fib_levels": [1.618],
+        },
+        "sizing": {"sizing_method": "risk_percent", "risk_percent": 1.0},
+        "friction": {},
+    }
+
+    original_trades, _, _ = run_backtest(
+        config, original, execution_mode="next_bar_open"
+    )
+    mutated_trades, _, _ = run_backtest(
+        config, mutated, execution_mode="next_bar_open"
+    )
+
+    assert original_trades and mutated_trades
+    original_entry = original_trades[0]
+    mutated_entry = mutated_trades[0]
+    assert original_entry["signal_time"] == mutated_entry["signal_time"] == index[2]
+    assert original_entry["entry_time"] == mutated_entry["entry_time"] == index[3]
+    assert original_entry["entry_raw"] == mutated_entry["entry_raw"] == 100.0
+    assert original_entry["stop_loss"] == pytest.approx(mutated_entry["stop_loss"])
+    assert original_entry["lot"] == pytest.approx(mutated_entry["lot"])
+    assert original_entry["take_profit"] == pytest.approx(
+        mutated_entry["take_profit"]
+    )
 
 
 def test_active_notebook_inspect_path_requires_clean_export():
@@ -213,7 +396,7 @@ def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up
     assert 'runtime_spec = require_runtime_broker_spec(globals().get("XAUUSD_SPEC"))' in source
     assert 'cfg = merge_runtime_broker_overrides(' in source
     assert 'context="calculate_position_size"' in source
-    assert "_calculate_lot(cash, entry_exec, stop_loss, sizing_cfg, atr_value=current_atr, spec=broker_spec)" in source
+    assert "_calculate_lot(cash, entry_exec, stop_loss, sizing_cfg, atr_value=entry_atr, spec=broker_spec)" in source
     assert 'contract_size = cfg["contract_size"]' in source
     assert 'min_lot = cfg["min_lot"]' in source
     assert 'if lot_size < min_lot:' in source
