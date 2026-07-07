@@ -568,6 +568,21 @@ def mark_to_market_long_equity(
     )
 
 
+def mark_to_market_short_equity(
+    cash: float,
+    position: dict | None,
+    mark_bid: float,
+    broker: BrokerProfile,
+) -> float:
+    """Account equity as cash plus open short PnL marked to the current Ask."""
+    if position is None:
+        return float(cash)
+    mark_ask = exit_ask_for_short(mark_bid, position["spread_price"])
+    return float(
+        cash + short_pnl_usd(position["entry_bid"], mark_ask, position["lot"], broker)
+    )
+
+
 def resolve_long_exit_bid(
     *,
     bar_open_bid: float,
@@ -788,7 +803,7 @@ def fixed_m15_smoke_configs(broker: BrokerProfile | None = None) -> list[dict]:
 def run_baseline_smoke(
     df: pd.DataFrame, broker: BrokerProfile, config: dict, *, timeframe: str
 ) -> dict:
-    """Run one deterministic long-only smoke path using Bid OHLC and Ask entries.
+    """Run one deterministic directional smoke path from verified Bid OHLC.
 
     The function purposely uses one position at a time, fixed lot, broker-server
     midnight rollover swap accounting, no historical news filter, and no
@@ -811,6 +826,9 @@ def run_baseline_smoke(
     position = None
     spread_multiplier = float(config.get("spread_multiplier", 1.0))
     spread_price = broker.spread_price_for_multiplier(spread_multiplier)
+    direction = str(config.get("direction", "long")).lower()
+    if direction not in {"long", "short"}:
+        raise ValueError("direction must be 'long' or 'short'")
 
     last_row = None
     for i in range(27, len(data)):
@@ -824,24 +842,44 @@ def run_baseline_smoke(
                 signal_prev["ema_fast"] <= signal_prev["ema_slow"]
                 and signal_bar["ema_fast"] > signal_bar["ema_slow"]
             )
-            if crossed_up and not pd.isna(signal_bar["atr_14"]):
+            crossed_down = (
+                signal_prev["ema_fast"] >= signal_prev["ema_slow"]
+                and signal_bar["ema_fast"] < signal_bar["ema_slow"]
+            )
+            signal = crossed_up if direction == "long" else crossed_down
+            if signal and not pd.isna(signal_bar["atr_14"]):
                 lot = broker.quantize_lot(config["lot"])
                 if lot != 0.0:
-                    entry_ask = entry_ask_from_bid_close(row["open"], spread_price)
                     risk_distance = signal_bar["atr_14"] * config["atr_multiplier"]
-                    position = {
+                    common_position = {
                         "signal_time": signal_bar.name,
                         "entry_time": row.name,
-                        "entry_ask": entry_ask,
                         "entry_bid_open": row["open"],
                         "spread_price": spread_price,
                         "spread_multiplier": spread_multiplier,
-                        "stop_bid": entry_ask - risk_distance,
-                        "target_bid": entry_ask + risk_distance * config["rr"],
+                        "direction": direction,
                         "lot": lot,
                         "swap": 0.0,
                         "last_swap_check_time": row.name,
                     }
+                    if direction == "long":
+                        entry_ask = entry_ask_from_bid_close(
+                            row["open"], spread_price
+                        )
+                        position = {
+                            **common_position,
+                            "entry_ask": entry_ask,
+                            "stop_bid": entry_ask - risk_distance,
+                            "target_bid": entry_ask + risk_distance * config["rr"],
+                        }
+                    else:
+                        entry_bid = entry_bid_for_short(row["open"])
+                        position = {
+                            **common_position,
+                            "entry_bid": entry_bid,
+                            "stop_ask": entry_bid + risk_distance,
+                            "target_ask": entry_bid - risk_distance * config["rr"],
+                        }
 
         if position is not None:
             capital = apply_crossed_rollover_swaps(
@@ -850,56 +888,86 @@ def run_baseline_smoke(
                 current_time=row.name,
                 broker=broker,
             )
-            exit_bid, exit_reason = resolve_long_exit_bid(
-                bar_open_bid=row["open"],
-                bar_high_bid=row["high"],
-                bar_low_bid=row["low"],
-                stop_bid=position["stop_bid"],
-                target_bid=position["target_bid"],
-            )
+            if direction == "long":
+                exit_bid, exit_reason = resolve_long_exit_bid(
+                    bar_open_bid=row["open"],
+                    bar_high_bid=row["high"],
+                    bar_low_bid=row["low"],
+                    stop_bid=position["stop_bid"],
+                    target_bid=position["target_bid"],
+                )
+            else:
+                exit_bid, exit_reason = resolve_short_exit_bid(
+                    bar_open_bid=row["open"],
+                    bar_high_bid=row["high"],
+                    bar_low_bid=row["low"],
+                    stop_ask=position["stop_ask"],
+                    target_ask=position["target_ask"],
+                    spread_price=spread_price,
+                )
             if exit_reason:
-                price_pnl = pnl_usd(
-                    position["entry_ask"], exit_bid, position["lot"], broker
+                exit_ask = exit_ask_for_short(exit_bid, spread_price)
+                price_pnl = (
+                    pnl_usd(position["entry_ask"], exit_bid, position["lot"], broker)
+                    if direction == "long"
+                    else short_pnl_usd(
+                        position["entry_bid"], exit_ask, position["lot"], broker
+                    )
                 )
                 trade_pnl = price_pnl + position["swap"]
                 capital += price_pnl
-                trades.append(
-                    {
-                        **position,
-                        "timeframe": normalized_timeframe,
-                        "exit_time": row.name,
-                        "exit_bid": exit_bid,
-                        "reason": exit_reason,
-                        "price_pnl": price_pnl,
-                        "swap": position["swap"],
-                        "pnl": trade_pnl,
-                    }
-                )
+                trade = {
+                    **position,
+                    "timeframe": normalized_timeframe,
+                    "exit_time": row.name,
+                    "exit_bid": exit_bid,
+                    "reason": exit_reason,
+                    "price_pnl": price_pnl,
+                    "swap": position["swap"],
+                    "pnl": trade_pnl,
+                }
+                if direction == "short":
+                    trade["exit_ask"] = exit_ask
+                trades.append(trade)
                 position = None
 
-        equity_curve.append(
-            mark_to_market_long_equity(capital, position, row["close"], broker)
-        )
+        if direction == "long":
+            equity = mark_to_market_long_equity(
+                capital, position, row["close"], broker
+            )
+        else:
+            equity = mark_to_market_short_equity(
+                capital, position, row["close"], broker
+            )
+        equity_curve.append(equity)
         if len(trades) >= config["max_trades"]:
             break
 
     if position is not None and last_row is not None:
         exit_bid = exit_bid_for_long(last_row["close"])
-        price_pnl = pnl_usd(position["entry_ask"], exit_bid, position["lot"], broker)
+        exit_ask = exit_ask_for_short(exit_bid, spread_price)
+        price_pnl = (
+            pnl_usd(position["entry_ask"], exit_bid, position["lot"], broker)
+            if direction == "long"
+            else short_pnl_usd(
+                position["entry_bid"], exit_ask, position["lot"], broker
+            )
+        )
         trade_pnl = price_pnl + position["swap"]
         capital += price_pnl
-        trades.append(
-            {
-                **position,
-                "timeframe": normalized_timeframe,
-                "exit_time": last_row.name,
-                "exit_bid": exit_bid,
-                "reason": "FORCED_FINAL_CLOSE",
-                "price_pnl": price_pnl,
-                "swap": position["swap"],
-                "pnl": trade_pnl,
-            }
-        )
+        trade = {
+            **position,
+            "timeframe": normalized_timeframe,
+            "exit_time": last_row.name,
+            "exit_bid": exit_bid,
+            "reason": "FORCED_FINAL_CLOSE",
+            "price_pnl": price_pnl,
+            "swap": position["swap"],
+            "pnl": trade_pnl,
+        }
+        if direction == "short":
+            trade["exit_ask"] = exit_ask
+        trades.append(trade)
         equity_curve[-1] = capital
 
     return {

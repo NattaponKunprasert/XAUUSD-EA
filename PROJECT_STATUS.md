@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Verify the combined notebook-audit and local baseline workflow head after merging `origin/main` into `codex/local-m15-baseline`, keeping exact-forward identity, rollover-based swap accounting, fail-closed `CLEAN` inspection, and deterministic single-timeframe smoke checks aligned on one audited branch.
+Extend the deterministic single-position baseline runner to cover short trades through the same timeframe-parameterized path, while preserving the fixed long-only report configurations and their audited results.
 
 ## Verified inputs
 
@@ -26,6 +26,7 @@ Verify the combined notebook-audit and local baseline workflow head after mergin
 - The importable validation layer now fail-fast plans chronological sample/holdout splits and walk-forward windows, with deterministic regression coverage on synthetic data plus real M15/M30/H1/H4 CSV boundaries
 - Broker profile loading now fails loudly when verified XM Micro constants conflict, including the `GOLDmicro` symbol and contract size `1`
 - Short-side Bid/Ask conversion, conservative same-bar SL/TP resolution, and risk-percent lot flooring are covered by deterministic accounting tests
+- The deterministic baseline runner now supports an explicit short direction with next-bar Bid entry, Ask-based SL/TP and mark-to-market accounting, conservative same-bar conflicts, directional rollover swap, and forced final close; omitted direction remains long for backward-compatible fixed reports
 - `python -m xauusd_ea.reporting` records the fixed M15 baseline/stress smoke run with data, broker-config, and code hashes; it does not use holdout data or rank candidates
 - Local PowerShell bootstrap now detects a broken `.venv`, requires an explicit `-Recreate`, checks every subprocess exit code, and runs the test suite before reporting readiness
 - The active notebook now routes AUTO sample/forward splits and walk-forward window planning through the importable validation helpers; unsafe WFA planning skips the candidate/timeframe instead of falling back to full-sample evaluation, and exact loaded configs record a validation fingerprint
@@ -34,6 +35,7 @@ Verify the combined notebook-audit and local baseline workflow head after mergin
 - The active notebook now records `Research Config Fingerprint` values on sampled evaluation rows, rejects missing or mismatched persisted configs before exact forward/WFA runs, and regression-tests those fail-closed identity checks
 - The active notebook now books swap by crossed broker-server rollover timestamps with no intraday charge, Wednesday triple swap, and weekend-skip handling, and the inspect/re-run notebook cell now refuses to auto-promote `SOFT` or generic fallback CSV exports
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
+- Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 
 ## Broker facts
 
