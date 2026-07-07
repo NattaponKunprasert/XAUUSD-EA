@@ -100,6 +100,11 @@ class BrokerProfile:
     def value_per_price_unit_per_lot(self) -> float:
         return self.tick_value_usd / self.tick_size
 
+    @property
+    def lot_precision(self) -> int:
+        text = f"{self.lot_step:.12f}".rstrip("0")
+        return len(text.partition(".")[2])
+
     def quantize_lot(self, raw_lot: float) -> float:
         """Risk-safe lot quantization for XM Micro volumes.
 
@@ -121,6 +126,22 @@ class BrokerProfile:
                 f"{self.spread_stress_multipliers!r}"
             )
         return self.spread_baseline_price * multiplier
+
+    def spread(self, multiplier: float = 1.0) -> float:
+        return self.spread_price_for_multiplier(float(multiplier))
+
+    def executable_price(
+        self, bid_price: float, side: str, spread_multiplier: float = 1.0
+    ) -> float:
+        """Convert verified Bid OHLC into an executable Bid/Ask price."""
+        if self.ohlc_price_source != "bid":
+            raise ValueError("baseline execution requires Bid OHLC")
+        side = str(side).lower()
+        if side == "buy":
+            return float(bid_price) + self.spread(spread_multiplier)
+        if side == "sell":
+            return float(bid_price)
+        raise ValueError("side must be 'buy' or 'sell'")
 
     def to_runtime_spec(self) -> dict[str, Any]:
         """Return the verified broker constants for runtime/backtest paths."""
@@ -156,6 +177,25 @@ class BrokerProfile:
 def load_broker_profile(path: str | Path) -> BrokerProfile:
     with Path(path).open("r", encoding="utf-8") as fh:
         cfg = json.load(fh)
+    verified = {
+        "profile_id": "xm_micro_gold",
+        "symbol": "GOLDmicro",
+        "ohlc_price_source": "bid",
+        "contract_size": 1.0,
+        "commission_per_lot_round_turn_usd": 0.0,
+        "fee_per_lot_round_turn_usd": 0.0,
+        "swap_type": "points",
+        "triple_swap_day": "Wednesday",
+    }
+    conflicts = {
+        key: (cfg.get(key), expected)
+        for key, expected in verified.items()
+        if cfg.get(key) != expected
+    }
+    if conflicts:
+        raise ValueError(
+            f"Broker profile conflicts with verified XM Micro constants: {conflicts}"
+        )
     return BrokerProfile(
         symbol=cfg["symbol"],
         aliases=tuple(str(alias) for alias in cfg.get("aliases", ())),
@@ -457,8 +497,16 @@ def entry_ask_from_bid_close(bid_close: float, spread_price: float) -> float:
     return bid_close + spread_price
 
 
+def entry_bid_for_short(bid_price: float) -> float:
+    return float(bid_price)
+
+
 def exit_bid_for_long(bid_price: float) -> float:
     return bid_price
+
+
+def exit_ask_for_short(bid_price: float, spread_price: float) -> float:
+    return float(bid_price) + float(spread_price)
 
 
 def pnl_usd(
@@ -470,6 +518,37 @@ def pnl_usd(
         - broker.commission_per_lot_round_turn_usd * lot
         - broker.fee_per_lot_round_turn_usd * lot
     )
+
+
+def short_pnl_usd(
+    entry_bid: float,
+    exit_ask: float,
+    lot: float,
+    broker: BrokerProfile,
+) -> float:
+    gross = (entry_bid - exit_ask) * lot * broker.contract_size
+    return (
+        gross
+        - broker.commission_per_lot_round_turn_usd * lot
+        - broker.fee_per_lot_round_turn_usd * lot
+    )
+
+
+def risk_percent_lot(
+    *,
+    capital: float,
+    entry_price: float,
+    stop_price: float,
+    risk_percent: float,
+    broker: BrokerProfile,
+) -> float:
+    """Floor risk sizing to the broker step; never round up below min lot."""
+    distance = abs(float(entry_price) - float(stop_price))
+    if capital <= 0 or distance <= 0 or risk_percent <= 0:
+        return 0.0
+    risk_cash = float(capital) * float(risk_percent) / 100.0
+    raw_lot = risk_cash / (distance * broker.value_per_price_unit_per_lot)
+    return broker.quantize_lot(raw_lot)
 
 
 def mark_to_market_long_equity(
@@ -515,6 +594,32 @@ def resolve_long_exit_bid(
         return stop_bid, "SL"
     if target_hit:
         return target_bid, "TP"
+    return None, None
+
+
+def resolve_short_exit_bid(
+    *,
+    bar_open_bid: float,
+    bar_high_bid: float,
+    bar_low_bid: float,
+    stop_ask: float,
+    target_ask: float,
+    spread_price: float,
+) -> tuple[float | None, str | None]:
+    """Resolve a short exit using Ask triggers derived from Bid OHLC."""
+    open_ask = bar_open_bid + spread_price
+    high_ask = bar_high_bid + spread_price
+    low_ask = bar_low_bid + spread_price
+    if open_ask >= stop_ask:
+        return float(bar_open_bid), "SL"
+    if open_ask <= target_ask:
+        return float(bar_open_bid), "TP"
+    stop_hit = high_ask >= stop_ask
+    target_hit = low_ask <= target_ask
+    if stop_hit:
+        return float(stop_ask - spread_price), "SL"
+    if target_hit:
+        return float(target_ask - spread_price), "TP"
     return None, None
 
 

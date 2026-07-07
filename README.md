@@ -7,7 +7,7 @@ Research and engineering project for producing one XM Micro `GOLDmicro` Expert A
 - Source notebook: `EA_XAUUSD_29102025_Master_FIXED_V3_9_HOLDOUT_SAFE_EXACT_FORWARD (1).ipynb`
 - Handoff and known issues: `XAUUSD_EA_Codex_Handoff.md`
 - Input data: MT5 Bid OHLCV for M15, M30, H1, and H4 from 2023-01-03 through 2026-06-19
-- Immediate milestone: establish a trustworthy M15 baseline and automated smoke tests before optimization
+- Immediate milestone: connect the active notebook to the audited validation helpers without changing the verified M15/M30/H1/H4 smoke baseline
 
 This repository is research software. No strategy should be described as profitable or live-ready until it has passed the documented validation and demo-forward gates.
 
@@ -25,9 +25,36 @@ Important differences from a standard XAUUSD contract:
 
 The future MQL5 EA must read mutable symbol properties from MT5 at runtime rather than assuming the snapshot never changes.
 
+## Local setup (Windows PowerShell)
+
+Python 3.12 is the repository/CI reference runtime. From the repository root:
+
+```powershell
+.\scripts\setup_local.ps1
+```
+
+If an old virtual environment points to a missing Python installation, rebuild it explicitly:
+
+```powershell
+.\scripts\setup_local.ps1 -Recreate
+```
+
+Run the regression suite and write an auditable deterministic smoke report with:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m xauusd_ea.reporting
+```
+
+The generated report is written under `outputs/`, which is intentionally excluded from Git.
+
+### Git audit trail
+
+Use a real clone of `NattaponKunprasert/XAUUSD-EA`; do not initialize an unrelated history. Every reviewable change should use a branch based on `origin/main` and record the test command in its pull request.
+
 ## Cloud setup
 
-Codex Cloud can install the Python dependencies from `requirements.txt`. The notebook resolves the CSV files from the repository root when it is not running in Google Colab.
+Scheduled Cloud Agent runs are disabled. The workflow retains manual dispatch only for an explicit future decision. The notebook resolves CSV files from the repository root when it is not running in Google Colab.
 
 Suggested first task:
 
