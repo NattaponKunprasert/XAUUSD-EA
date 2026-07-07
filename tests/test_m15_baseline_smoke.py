@@ -13,6 +13,7 @@ from xauusd_ea.baseline import (
     load_broker_profile,
     load_mt5_csv,
     mark_to_market_long_equity,
+    mark_to_market_short_equity,
     normalize_baseline_timeframe,
     pnl_usd,
     resolve_long_exit_bid,
@@ -61,6 +62,18 @@ def _stub_baseline_indicators(frame: pd.DataFrame) -> pd.DataFrame:
     out.iloc[26, out.columns.get_loc("ema_fast")] = 101.0
     out.iloc[26, out.columns.get_loc("ema_slow")] = 100.0
     out.iloc[26, out.columns.get_loc("atr_14")] = 1.0
+    return out
+
+
+def _stub_short_baseline_indicators(frame: pd.DataFrame) -> pd.DataFrame:
+    out = frame.copy()
+    out["ema_fast"] = 101.0
+    out["ema_slow"] = 100.0
+    out["atr_14"] = 1.0
+    out.iloc[25, out.columns.get_loc("ema_fast")] = 101.0
+    out.iloc[25, out.columns.get_loc("ema_slow")] = 100.0
+    out.iloc[26, out.columns.get_loc("ema_fast")] = 99.0
+    out.iloc[26, out.columns.get_loc("ema_slow")] = 100.0
     return out
 
 
@@ -137,6 +150,23 @@ def test_mark_to_market_long_equity_uses_bid_close_and_micro_contract_size():
     assert mark_to_market_long_equity(
         1000.0, position, 2001.50, broker
     ) == pytest.approx(1000.10)
+
+
+def test_mark_to_market_short_equity_uses_ask_close_and_micro_contract_size():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    position = {
+        "entry_bid": 2001.50,
+        "spread_price": broker.spread_baseline_price,
+        "lot": 0.10,
+    }
+    expected_exit_ask = 2000.00 + broker.spread_baseline_price
+
+    assert mark_to_market_short_equity(
+        1000.0, None, 2000.00, broker
+    ) == pytest.approx(1000.0)
+    assert mark_to_market_short_equity(
+        1000.0, position, 2000.00, broker
+    ) == pytest.approx(1000.0 + (2001.50 - expected_exit_ask) * 0.10)
 
 
 def test_swap_points_use_micro_contract_size_and_wednesday_triple():
@@ -384,6 +414,47 @@ def test_smoke_applies_one_normal_overnight_rollover_swap(
     assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
 
 
+def test_short_smoke_uses_directional_swap_at_crossed_rollover(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        start="2023-01-02 17:00",
+        entry_bar={"open": 100.0, "high": 100.2, "low": 99.5, "close": 99.8},
+        post_entry_bar={"open": 99.8, "high": 100.0, "low": 97.0, "close": 98.0},
+    )
+    monkeypatch.setattr(
+        baseline, "add_baseline_indicators", _stub_short_baseline_indicators
+    )
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "short_normal_swap",
+            "direction": "short",
+            "atr_multiplier": 2.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    trade = result["trades"][0]
+    expected_swap = swap_usd(
+        lot=0.10,
+        direction="short",
+        broker=broker,
+        rollover_timestamp=pd.Timestamp("2023-01-03 00:00"),
+    )
+    assert trade["entry_time"] == pd.Timestamp("2023-01-02 23:45")
+    assert trade["exit_time"] == pd.Timestamp("2023-01-03 00:00")
+    assert trade["reason"] == "TP"
+    assert trade["swap"] == pytest.approx(expected_swap)
+    assert trade["pnl"] == pytest.approx(trade["price_pnl"] + expected_swap)
+    assert result["final_capital"] == pytest.approx(1000.0 + trade["pnl"])
+
+
 def test_smoke_applies_wednesday_triple_rollover_swap(
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -609,6 +680,124 @@ def test_smoke_entries_execute_on_next_bar_open_plus_spread():
     expected_entry_ask = first["entry_bid_open"] + broker.spread_baseline_price
     assert first["entry_ask"] == pytest.approx(expected_entry_ask)
     assert first["entry_ask"] == pytest.approx(1841.6311428571428)
+
+
+def test_short_smoke_executes_next_bar_bid_entry_and_ask_target(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        entry_bar={"open": 100.0, "high": 100.2, "low": 98.0, "close": 99.0}
+    )
+    monkeypatch.setattr(
+        baseline, "add_baseline_indicators", _stub_short_baseline_indicators
+    )
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "short_entry_bar_tp",
+            "direction": "short",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    assert result["trade_count"] == 1
+    trade = result["trades"][0]
+    assert trade["direction"] == "short"
+    assert trade["signal_time"] == df.index[26]
+    assert trade["entry_time"] == trade["exit_time"] == df.index[27]
+    assert trade["entry_bid"] == pytest.approx(df.iloc[27]["open"])
+    assert trade["reason"] == "TP"
+    assert trade["exit_ask"] == pytest.approx(trade["target_ask"])
+    assert trade["price_pnl"] == pytest.approx(0.10)
+    assert result["final_capital"] == pytest.approx(1000.10)
+    assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
+
+
+def test_short_smoke_same_bar_ambiguity_resolves_to_ask_stop(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        entry_bar={"open": 100.0, "high": 101.0, "low": 98.0, "close": 99.0}
+    )
+    monkeypatch.setattr(
+        baseline, "add_baseline_indicators", _stub_short_baseline_indicators
+    )
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "short_entry_bar_conflict",
+            "direction": "short",
+            "atr_multiplier": 1.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    trade = result["trades"][0]
+    assert trade["entry_time"] == trade["exit_time"] == df.index[27]
+    assert trade["reason"] == "SL"
+    assert trade["exit_ask"] == pytest.approx(trade["stop_ask"])
+    assert trade["price_pnl"] == pytest.approx(-0.10)
+
+
+def test_short_smoke_forced_close_and_equity_mark_use_ask(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = _make_synthetic_smoke_df(
+        entry_bar={"open": 100.0, "high": 100.2, "low": 99.5, "close": 99.8},
+        post_entry_bar={
+            "open": 99.8,
+            "high": 100.0,
+            "low": 99.4,
+            "close": 99.6,
+        },
+    )
+    monkeypatch.setattr(
+        baseline, "add_baseline_indicators", _stub_short_baseline_indicators
+    )
+
+    result = run_m15_baseline_smoke(
+        df,
+        broker,
+        {
+            "name": "short_forced_close",
+            "direction": "short",
+            "atr_multiplier": 2.0,
+            "rr": 1.0,
+            "lot": 0.10,
+            "max_trades": 1,
+        },
+    )
+
+    trade = result["trades"][0]
+    expected_exit_ask = 99.6 + broker.spread_baseline_price
+    expected_price_pnl = (100.0 - expected_exit_ask) * 0.10
+    assert trade["reason"] == "FORCED_FINAL_CLOSE"
+    assert trade["exit_bid"] == pytest.approx(99.6)
+    assert trade["exit_ask"] == pytest.approx(expected_exit_ask)
+    assert trade["price_pnl"] == pytest.approx(expected_price_pnl)
+    assert result["final_capital"] == pytest.approx(1000.0 + expected_price_pnl)
+    assert result["equity_curve"][-1] == pytest.approx(result["final_capital"])
+
+
+def test_smoke_rejects_unknown_direction():
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    df = load_mt5_csv(ROOT / "XAUUSD_M15.csv").iloc[:100]
+    config = fixed_m15_smoke_configs()[0] | {"direction": "both"}
+
+    with pytest.raises(ValueError, match="direction must be"):
+        run_m15_baseline_smoke(df, broker, config)
 
 
 def test_resolve_long_exit_bid_is_gap_aware_and_conservative():
