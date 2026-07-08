@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Isolate the active engine's candidate-sensitive indicator math so MACD and Bollinger calculations are importable, deterministic, and tied to each frozen candidate configuration.
+Isolate the active engine's ATR calculation so stop distance, sizing, and volatility filtering share one importable deterministic implementation tied to the frozen candidate period.
 
 ## Verified inputs
 
@@ -37,11 +37,13 @@ Isolate the active engine's candidate-sensitive indicator math so MACD and Bolli
 - Fibonacci extension targets now come from an importable closed-bar helper that uses only data through the signal bar, validates configured extension levels, and handles long/short direction explicitly; the isolated legacy path no longer contains an always-true level selector or reads levels from indicator parameters
 - Next-bar entries now freeze ATR at the fully closed signal bar before deriving the stop and lot size; the active engine also defines its sizing bridge explicitly instead of depending on an undefined notebook-runtime helper
 - The active engine now imports canonical MACD and Bollinger math, applies each frozen candidate's periods and multiplier, rejects invalid parameter sets, and has deterministic future-mutation coverage
+- The active engine now imports canonical Wilder-smoothed ATR math, applies the frozen candidate period to stops, sizing, and volatility filters, rejects invalid or misaligned inputs, and has deterministic future-mutation coverage
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
 - Local verification on 2026-07-07 passed the focused validation/exit suite (48 tests) and full `python -m pytest -q` (110 tests) after closing the entry-bar ATR leakage and adding a deterministic mutation regression
 - Local verification on 2026-07-08 passed the focused indicator/validation suite (51 tests) and full `python -m pytest -q` (118 tests) after isolating candidate-sensitive MACD and Bollinger calculations
+- Local verification on 2026-07-08 passed the focused indicator/validation suite (54 tests) and full `python -m pytest -q` (121 tests) after isolating the active engine's ATR calculation
 
 ## Broker facts
 

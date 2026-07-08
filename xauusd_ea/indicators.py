@@ -54,3 +54,40 @@ def bollinger_bands(
     middle = close_series.rolling(period).mean()
     deviation = close_series.rolling(period).std(ddof=0)
     return middle, middle + multiplier * deviation, middle - multiplier * deviation
+
+
+def average_true_range(
+    high: pd.Series,
+    low: pd.Series,
+    close: pd.Series,
+    period: int = 14,
+) -> pd.Series:
+    """Return Wilder-smoothed ATR for one frozen candidate period."""
+    period = int(period)
+    if period <= 0:
+        raise ValueError("ATR period must be positive")
+
+    high_series = pd.Series(high, index=high.index, dtype=float)
+    low_series = pd.Series(low, index=low.index, dtype=float)
+    close_series = _close_series(close)
+    if high_series.empty or low_series.empty:
+        raise ValueError("high and low must contain at least one value")
+    if not high_series.index.equals(close_series.index) or not low_series.index.equals(
+        close_series.index
+    ):
+        raise ValueError("high, low, and close must use identical indexes")
+
+    previous_close = close_series.shift(1)
+    true_range = pd.concat(
+        [
+            high_series - low_series,
+            (high_series - previous_close).abs(),
+            (low_series - previous_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    return true_range.ewm(
+        alpha=1 / period,
+        min_periods=period,
+        adjust=False,
+    ).mean()

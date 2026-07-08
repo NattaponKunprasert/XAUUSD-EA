@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from xauusd_ea.indicators import bollinger_bands, macd
+from xauusd_ea.indicators import average_true_range, bollinger_bands, macd
 
 
 def _close() -> pd.Series:
@@ -9,6 +9,11 @@ def _close() -> pd.Series:
         [100.0, 101.0, 99.0, 103.0, 102.0, 106.0, 104.0, 108.0],
         index=pd.date_range("2025-01-01", periods=8, freq="15min"),
     )
+
+
+def _ohlc() -> tuple[pd.Series, pd.Series, pd.Series]:
+    close = _close()
+    return close + 2.0, close - 1.0, close
 
 
 def test_macd_uses_the_candidate_parameter_set():
@@ -59,6 +64,32 @@ def test_indicator_values_do_not_change_when_only_future_closes_change():
         pd.testing.assert_series_equal(original.iloc[:6], changed.iloc[:6])
 
 
+def test_average_true_range_uses_candidate_period_and_wilder_smoothing():
+    high, low, close = _ohlc()
+    atr_two = average_true_range(high, low, close, period=2)
+    atr_four = average_true_range(high, low, close, period=4)
+
+    previous_close = close.shift(1)
+    true_range = pd.concat(
+        [high - low, (high - previous_close).abs(), (low - previous_close).abs()],
+        axis=1,
+    ).max(axis=1)
+    expected = true_range.ewm(alpha=0.5, min_periods=2, adjust=False).mean()
+    pd.testing.assert_series_equal(atr_two, expected)
+    assert not atr_two.equals(atr_four)
+
+
+def test_average_true_range_ignores_future_ohlc_mutations():
+    high, low, close = _ohlc()
+    original = average_true_range(high, low, close, period=3)
+    high.iloc[6:] = [900.0, 800.0]
+    low.iloc[6:] = [1.0, 2.0]
+    close.iloc[6:] = [500.0, 3.0]
+    mutated = average_true_range(high, low, close, period=3)
+
+    pd.testing.assert_series_equal(original.iloc[:6], mutated.iloc[:6])
+
+
 @pytest.mark.parametrize(
     ("args", "message"),
     [((0, 5, 2), "positive"), ((5, 5, 2), "less than slow")],
@@ -75,3 +106,11 @@ def test_macd_rejects_invalid_candidate_periods(args, message):
 def test_bollinger_rejects_invalid_candidate_parameters(period, multiplier, message):
     with pytest.raises(ValueError, match=message):
         bollinger_bands(_close(), period, multiplier)
+
+
+def test_average_true_range_rejects_invalid_period_or_misaligned_prices():
+    high, low, close = _ohlc()
+    with pytest.raises(ValueError, match="positive"):
+        average_true_range(high, low, close, 0)
+    with pytest.raises(ValueError, match="identical indexes"):
+        average_true_range(high.reset_index(drop=True), low, close, 3)
