@@ -14,6 +14,14 @@ def _close_series(close: pd.Series) -> pd.Series:
     return series
 
 
+def exponential_moving_average(close: pd.Series, period: int) -> pd.Series:
+    """Return the causal EMA for one frozen candidate period."""
+    period = int(period)
+    if period <= 0:
+        raise ValueError("EMA period must be positive")
+    return _close_series(close).ewm(span=period, adjust=False).mean()
+
+
 def macd(
     close: pd.Series,
     fast: int,
@@ -30,8 +38,8 @@ def macd(
         raise ValueError("MACD fast period must be less than slow period")
 
     close_series = _close_series(close)
-    fast_ema = close_series.ewm(span=fast, adjust=False).mean()
-    slow_ema = close_series.ewm(span=slow, adjust=False).mean()
+    fast_ema = exponential_moving_average(close_series, fast)
+    slow_ema = exponential_moving_average(close_series, slow)
     line = fast_ema - slow_ema
     signal_line = line.ewm(span=signal, adjust=False).mean()
     return line, signal_line, line - signal_line

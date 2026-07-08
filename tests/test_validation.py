@@ -26,7 +26,12 @@ from xauusd_ea.baseline import (
     require_runtime_broker_spec,
 )
 from xauusd_ea.exits import fibonacci_extension_target
-from xauusd_ea.indicators import average_true_range, bollinger_bands, macd
+from xauusd_ea.indicators import (
+    average_true_range,
+    bollinger_bands,
+    exponential_moving_average,
+    macd,
+)
 from xauusd_ea.validation import (
     SampleHoldoutSplit,
     UnsafeEvaluationError,
@@ -144,6 +149,7 @@ def _active_notebook_run_backtest():
         "_calculate_fib_target_safe": fibonacci_extension_target,
         "_atr": average_true_range,
         "_bollinger": bollinger_bands,
+        "_ema": exponential_moving_average,
         "_macd": macd,
         "_safe_passes_filters": lambda *args, **kwargs: True,
         "_valid_stop_target": lambda *args, **kwargs: True,
@@ -235,9 +241,11 @@ def test_active_notebook_uses_canonical_candidate_indicator_math():
 
     assert (
         "from xauusd_ea.indicators import average_true_range as _atr, "
-        "bollinger_bands as _bollinger, macd as _macd" in source
+        "bollinger_bands as _bollinger, exponential_moving_average as _ema, "
+        "macd as _macd" in source
     )
     assert "def _atr(" not in source
+    assert "def _ema(" not in source
     assert "def _macd(" not in source
     assert "def _bollinger(" not in source
     assert "_macd(close, mf, ms, msg)" in source
