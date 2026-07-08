@@ -6,6 +6,7 @@ from .baseline import (
     load_broker_profile,
 )
 from .exits import fibonacci_extension_target
+from .indicators import bollinger_bands, macd
 from .validation import (
     SampleHoldoutSplit,
     UnsafeEvaluationError,
@@ -20,7 +21,9 @@ from .validation import (
 
 __all__ = [
     "BrokerProfile",
+    "bollinger_bands",
     "fibonacci_extension_target",
+    "macd",
     "SampleHoldoutSplit",
     "UnsafeEvaluationError",
     "assert_expected_research_config_fingerprint",
