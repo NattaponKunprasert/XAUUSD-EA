@@ -26,6 +26,7 @@ from xauusd_ea.baseline import (
     require_runtime_broker_spec,
 )
 from xauusd_ea.exits import fibonacci_extension_target
+from xauusd_ea.indicators import bollinger_bands, macd
 from xauusd_ea.validation import (
     SampleHoldoutSplit,
     UnsafeEvaluationError,
@@ -141,6 +142,8 @@ def _active_notebook_run_backtest():
         "merge_runtime_broker_overrides": merge_runtime_broker_overrides,
         "require_runtime_broker_spec": require_runtime_broker_spec,
         "_calculate_fib_target_safe": fibonacci_extension_target,
+        "_bollinger": bollinger_bands,
+        "_macd": macd,
         "_safe_passes_filters": lambda *args, **kwargs: True,
         "_valid_stop_target": lambda *args, **kwargs: True,
         "_intrabar_stop_target": lambda *args, **kwargs: (None, None),
@@ -224,6 +227,19 @@ def test_active_notebook_isolates_legacy_fibonacci_target_and_uses_canonical_hel
     )
     assert 'config["exit"].get("fib_levels", [1.618])' in source
     assert "config[\"params\"].get(\"Fibonacci\", {})" not in source
+
+
+def test_active_notebook_uses_canonical_candidate_indicator_math():
+    source = _notebook_code_source()
+
+    assert (
+        "from xauusd_ea.indicators import bollinger_bands as _bollinger, "
+        "macd as _macd" in source
+    )
+    assert "def _macd(" not in source
+    assert "def _bollinger(" not in source
+    assert "_macd(close, mf, ms, msg)" in source
+    assert "_bollinger(close, b_period, b_mult)" in source
 
 
 def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
