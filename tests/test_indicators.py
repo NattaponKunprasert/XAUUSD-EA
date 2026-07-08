@@ -1,7 +1,12 @@
 import pandas as pd
 import pytest
 
-from xauusd_ea.indicators import average_true_range, bollinger_bands, macd
+from xauusd_ea.indicators import (
+    average_true_range,
+    bollinger_bands,
+    exponential_moving_average,
+    macd,
+)
 
 
 def _close() -> pd.Series:
@@ -14,6 +19,35 @@ def _close() -> pd.Series:
 def _ohlc() -> tuple[pd.Series, pd.Series, pd.Series]:
     close = _close()
     return close + 2.0, close - 1.0, close
+
+
+def test_exponential_moving_average_uses_frozen_candidate_period():
+    close = _close()
+    ema_two = exponential_moving_average(close, period=2)
+    ema_four = exponential_moving_average(close, period=4)
+
+    pd.testing.assert_series_equal(
+        ema_two,
+        close.ewm(span=2, adjust=False).mean(),
+    )
+    assert not ema_two.equals(ema_four)
+
+
+def test_exponential_moving_average_ignores_future_close_mutations():
+    close = _close()
+    original = exponential_moving_average(close, period=3)
+    mutated = close.copy()
+    mutated.iloc[6:] = [500.0, 1.0]
+
+    pd.testing.assert_series_equal(
+        original.iloc[:6],
+        exponential_moving_average(mutated, period=3).iloc[:6],
+    )
+
+
+def test_exponential_moving_average_rejects_invalid_period():
+    with pytest.raises(ValueError, match="positive"):
+        exponential_moving_average(_close(), period=0)
 
 
 def test_macd_uses_the_candidate_parameter_set():
