@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Isolate the active engine's Stochastic oscillator calculation so candidate periods share one importable deterministic implementation with explicit causal validation.
+Isolate the active engine's entry signal composition so AND/OR/VOTE candidate logic shares one importable deterministic implementation with explicit notebook routing validation.
 
 ## Verified inputs
 
@@ -41,6 +41,7 @@ Isolate the active engine's Stochastic oscillator calculation so candidate perio
 - The active engine now imports canonical EMA math, applies each frozen candidate period, rejects invalid periods, and has deterministic future-mutation coverage
 - The active engine now imports canonical Wilder-smoothed RSI math, applies each frozen candidate period, rejects invalid periods, and has deterministic future-mutation coverage
 - The active engine now imports canonical Stochastic oscillator math, applies each frozen candidate k/d/smooth parameter set, rejects invalid or misaligned inputs, and has deterministic future-mutation coverage
+- The active engine now imports canonical entry signal composition logic, preserving AND/OR/VOTE behavior and custom combo resolution while routing notebook wrappers through one tested helper
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
@@ -50,6 +51,7 @@ Isolate the active engine's Stochastic oscillator calculation so candidate perio
 - Local verification on 2026-07-08 passed the focused indicator/validation suite (57 tests) and full `python -m pytest -q` (124 tests) after isolating the active engine's EMA calculation
 - Local verification on 2026-07-09 passed the focused indicator/validation suite (60 tests) and full `python -m pytest -q` (127 tests) after isolating the active engine's RSI calculation
 - Local verification on 2026-07-09 passed the focused indicator/validation suite (66 tests) and full `python -m pytest -q` (133 tests) after isolating the active engine's Stochastic oscillator calculation
+- Local verification on 2026-07-09 passed the focused entry/notebook-routing suite (5 tests) and full `python -m pytest -q` (138 tests) after isolating entry signal composition; pytest reported a Windows temp symlink cleanup permission warning after the passing run
 
 ## Broker facts
 
