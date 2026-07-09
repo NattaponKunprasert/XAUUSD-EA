@@ -26,6 +26,7 @@ from xauusd_ea.baseline import (
     require_runtime_broker_spec,
 )
 from xauusd_ea.exits import fibonacci_extension_target
+from xauusd_ea.filters import passes_entry_filters
 from xauusd_ea.indicators import (
     average_true_range,
     bollinger_bands,
@@ -149,13 +150,14 @@ def _active_notebook_run_backtest():
         "merge_runtime_broker_overrides": merge_runtime_broker_overrides,
         "require_runtime_broker_spec": require_runtime_broker_spec,
         "_calculate_fib_target_safe": fibonacci_extension_target,
+        "_passes_entry_filters_safe": passes_entry_filters,
         "_atr": average_true_range,
         "_bollinger": bollinger_bands,
         "_ema": exponential_moving_average,
         "_macd": macd,
         "_rsi": relative_strength_index,
         "_stochastic": stochastic_oscillator,
-        "_safe_passes_filters": lambda *args, **kwargs: True,
+        "entry_filters": {},
         "_valid_stop_target": lambda *args, **kwargs: True,
         "_intrabar_stop_target": lambda *args, **kwargs: (None, None),
         "_gross_pnl": lambda entry, exit_price, lot, direction, spec: (
@@ -274,6 +276,19 @@ def test_active_notebook_routes_entry_composition_through_canonical_helper():
     assert "return _resolve_entry_pair_safe(" in source
     assert "mat = pd.concat(signals, axis=1)" not in source
     assert "matrix = pd.concat(signals, axis=1)" not in source
+
+
+def test_active_notebook_routes_entry_filters_through_canonical_helper():
+    source = _notebook_code_source()
+
+    assert (
+        "from xauusd_ea.filters import passes_entry_filters as "
+        "_passes_entry_filters_safe" in source
+    )
+    assert "def _safe_passes_filters(" in source
+    assert "return _passes_entry_filters_safe(" in source
+    assert 'registry=globals().get("entry_filters", {})' in source
+    assert "if not _safe_passes_filters(df, signal_i, filters" in source
 
 
 def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
