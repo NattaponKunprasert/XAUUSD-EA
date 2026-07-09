@@ -262,6 +262,20 @@ def test_active_notebook_uses_canonical_candidate_indicator_math():
     assert "_stochastic(high, low, close, kk, dd, sm)" in source
 
 
+def test_active_notebook_routes_entry_composition_through_canonical_helper():
+    source = _notebook_code_source()
+
+    assert (
+        "from xauusd_ea.entries import (\n"
+        "    compose_entry_signals as _compose_entry_signals_safe,"
+    ) in source
+    assert "resolve_entry_pair as _resolve_entry_pair_safe" in source
+    assert "return _compose_entry_signals_safe(" in source
+    assert "return _resolve_entry_pair_safe(" in source
+    assert "mat = pd.concat(signals, axis=1)" not in source
+    assert "matrix = pd.concat(signals, axis=1)" not in source
+
+
 def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
     source = _notebook_cell_source(18)
     assert "entry_atr = float(atr_values[signal_i])" in source
