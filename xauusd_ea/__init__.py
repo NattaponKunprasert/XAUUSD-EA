@@ -6,6 +6,7 @@ from .baseline import (
     load_broker_profile,
 )
 from .exits import fibonacci_extension_target
+from .filters import passes_entry_filters
 from .indicators import bollinger_bands, macd, stochastic_oscillator
 from .validation import (
     SampleHoldoutSplit,
@@ -23,6 +24,7 @@ __all__ = [
     "BrokerProfile",
     "bollinger_bands",
     "fibonacci_extension_target",
+    "passes_entry_filters",
     "macd",
     "stochastic_oscillator",
     "SampleHoldoutSplit",
