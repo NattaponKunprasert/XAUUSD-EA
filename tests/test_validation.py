@@ -291,6 +291,21 @@ def test_active_notebook_routes_entry_filters_through_canonical_helper():
     assert "if not _safe_passes_filters(df, signal_i, filters" in source
 
 
+def test_active_notebook_routes_strategy_metrics_through_canonical_helper():
+    source = _notebook_code_source()
+
+    assert (
+        "from xauusd_ea.metrics import clean_strategies as "
+        "_clean_strategies_safe, compute_strategy_metrics as "
+        "_compute_strategy_metrics_safe" in source
+    )
+    assert "return _compute_strategy_metrics_safe(" in source
+    assert "return _clean_strategies_safe(" in source
+    assert "profit_factor_raw = np.inf" not in source
+    assert "profit_factor_for_score = min(" not in source
+    assert "out = out[out[\"# Trades\"] >= int(min_trades)]" not in source
+
+
 def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
     source = _notebook_cell_source(18)
     assert "entry_atr = float(atr_values[signal_i])" in source

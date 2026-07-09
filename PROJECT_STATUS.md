@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Isolate the active engine's entry filter routing so notebook filter gates share one importable deterministic implementation with explicit closed-bar routing validation.
+Isolate the active engine's strategy metrics and cleaning gates so notebook scoring shares one importable deterministic implementation with explicit regression coverage.
 
 ## Verified inputs
 
@@ -43,6 +43,7 @@ Isolate the active engine's entry filter routing so notebook filter gates share 
 - The active engine now imports canonical Stochastic oscillator math, applies each frozen candidate k/d/smooth parameter set, rejects invalid or misaligned inputs, and has deterministic future-mutation coverage
 - The active engine now imports canonical entry signal composition logic, preserving AND/OR/VOTE behavior and custom combo resolution while routing notebook wrappers through one tested helper
 - The active engine now imports canonical entry filter routing logic, preserving enabled/disabled filter behavior, failing closed on unknown enabled filters, and applying filters at the already closed signal-bar index before next-bar entry
+- The active engine now imports canonical strategy metric and cleaning helpers, preserving capped scoring for infinite profit factor, drawdown/loss-streak accounting, stopped-early detection, and strict trade/drawdown/win-rate cleaning gates
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
@@ -54,6 +55,7 @@ Isolate the active engine's entry filter routing so notebook filter gates share 
 - Local verification on 2026-07-09 passed the focused indicator/validation suite (66 tests) and full `python -m pytest -q` (133 tests) after isolating the active engine's Stochastic oscillator calculation
 - Local verification on 2026-07-09 passed the focused entry/notebook-routing suite (5 tests) and full `python -m pytest -q` (138 tests) after isolating entry signal composition; pytest reported a Windows temp symlink cleanup permission warning after the passing run
 - Local verification on 2026-07-09 passed the focused filter/notebook-routing suite (50 tests) and full `python -m pytest -q` (143 tests) after isolating entry filter routing; pytest reported a Windows temp symlink cleanup permission warning after the passing run
+- Local verification on 2026-07-09 passed the focused metrics/notebook-routing suite (50 tests) and full `python -m pytest -q` (147 tests) after isolating strategy metrics and cleaning; pytest reported a Windows temp symlink cleanup permission warning after the passing run
 
 ## Broker facts
 
