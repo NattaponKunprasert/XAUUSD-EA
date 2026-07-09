@@ -6,6 +6,7 @@ from xauusd_ea.indicators import (
     bollinger_bands,
     exponential_moving_average,
     macd,
+    relative_strength_index,
 )
 
 
@@ -48,6 +49,42 @@ def test_exponential_moving_average_ignores_future_close_mutations():
 def test_exponential_moving_average_rejects_invalid_period():
     with pytest.raises(ValueError, match="positive"):
         exponential_moving_average(_close(), period=0)
+
+
+def test_relative_strength_index_uses_frozen_candidate_period():
+    close = _close()
+    rsi_two = relative_strength_index(close, period=2)
+    rsi_four = relative_strength_index(close, period=4)
+
+    delta = close.diff()
+    gain = delta.clip(lower=0.0)
+    loss = -delta.clip(upper=0.0)
+    average_gain = gain.ewm(alpha=0.5, min_periods=2, adjust=False).mean()
+    average_loss = loss.ewm(alpha=0.5, min_periods=2, adjust=False).mean()
+    relative_strength = average_gain / average_loss.replace(0.0, float("nan"))
+    expected = 100.0 - (100.0 / (1.0 + relative_strength))
+    expected = expected.where(average_loss != 0.0, 100.0)
+    expected = expected.where(average_gain != 0.0, 0.0)
+
+    pd.testing.assert_series_equal(rsi_two, expected)
+    assert not rsi_two.equals(rsi_four)
+
+
+def test_relative_strength_index_ignores_future_close_mutations():
+    close = _close()
+    original = relative_strength_index(close, period=3)
+    mutated = close.copy()
+    mutated.iloc[6:] = [500.0, 1.0]
+
+    pd.testing.assert_series_equal(
+        original.iloc[:6],
+        relative_strength_index(mutated, period=3).iloc[:6],
+    )
+
+
+def test_relative_strength_index_rejects_invalid_period():
+    with pytest.raises(ValueError, match="positive"):
+        relative_strength_index(_close(), period=0)
 
 
 def test_macd_uses_the_candidate_parameter_set():

@@ -22,6 +22,32 @@ def exponential_moving_average(close: pd.Series, period: int) -> pd.Series:
     return _close_series(close).ewm(span=period, adjust=False).mean()
 
 
+def relative_strength_index(close: pd.Series, period: int = 14) -> pd.Series:
+    """Return Wilder-smoothed RSI for one frozen candidate period."""
+    period = int(period)
+    if period <= 0:
+        raise ValueError("RSI period must be positive")
+
+    close_series = _close_series(close)
+    delta = close_series.diff()
+    gain = delta.clip(lower=0.0)
+    loss = -delta.clip(upper=0.0)
+    average_gain = gain.ewm(
+        alpha=1 / period,
+        min_periods=period,
+        adjust=False,
+    ).mean()
+    average_loss = loss.ewm(
+        alpha=1 / period,
+        min_periods=period,
+        adjust=False,
+    ).mean()
+    relative_strength = average_gain / average_loss.replace(0.0, math.nan)
+    rsi = 100.0 - (100.0 / (1.0 + relative_strength))
+    rsi = rsi.where(average_loss != 0.0, 100.0)
+    return rsi.where(average_gain != 0.0, 0.0)
+
+
 def macd(
     close: pd.Series,
     fast: int,

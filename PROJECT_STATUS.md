@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Isolate the active engine's EMA calculation so candidate periods share one importable deterministic implementation with explicit causal validation.
+Isolate the active engine's RSI calculation so candidate periods share one importable deterministic implementation with explicit causal validation.
 
 ## Verified inputs
 
@@ -39,6 +39,7 @@ Isolate the active engine's EMA calculation so candidate periods share one impor
 - The active engine now imports canonical MACD and Bollinger math, applies each frozen candidate's periods and multiplier, rejects invalid parameter sets, and has deterministic future-mutation coverage
 - The active engine now imports canonical Wilder-smoothed ATR math, applies the frozen candidate period to stops, sizing, and volatility filters, rejects invalid or misaligned inputs, and has deterministic future-mutation coverage
 - The active engine now imports canonical EMA math, applies each frozen candidate period, rejects invalid periods, and has deterministic future-mutation coverage
+- The active engine now imports canonical Wilder-smoothed RSI math, applies each frozen candidate period, rejects invalid periods, and has deterministic future-mutation coverage
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
@@ -46,6 +47,7 @@ Isolate the active engine's EMA calculation so candidate periods share one impor
 - Local verification on 2026-07-08 passed the focused indicator/validation suite (51 tests) and full `python -m pytest -q` (118 tests) after isolating candidate-sensitive MACD and Bollinger calculations
 - Local verification on 2026-07-08 passed the focused indicator/validation suite (54 tests) and full `python -m pytest -q` (121 tests) after isolating the active engine's ATR calculation
 - Local verification on 2026-07-08 passed the focused indicator/validation suite (57 tests) and full `python -m pytest -q` (124 tests) after isolating the active engine's EMA calculation
+- Local verification on 2026-07-09 passed the focused indicator/validation suite (60 tests) and full `python -m pytest -q` (127 tests) after isolating the active engine's RSI calculation
 
 ## Broker facts
 
