@@ -125,3 +125,43 @@ def average_true_range(
         min_periods=period,
         adjust=False,
     ).mean()
+
+
+def stochastic_oscillator(
+    high: pd.Series,
+    low: pd.Series,
+    close: pd.Series,
+    k: int = 14,
+    d: int = 3,
+    smooth: int | None = 3,
+) -> tuple[pd.Series, pd.Series]:
+    """Return stochastic %K and %D for one frozen candidate parameter set."""
+    k = int(k)
+    d = int(d)
+    if k <= 0 or d <= 0:
+        raise ValueError("Stochastic k and d periods must be positive")
+    if smooth is None or smooth == "" or smooth is False:
+        smooth_period = None
+    else:
+        smooth_period = int(smooth)
+        if smooth_period <= 0:
+            raise ValueError("Stochastic smooth period must be positive")
+
+    high_series = pd.Series(high, index=high.index, dtype=float)
+    low_series = pd.Series(low, index=low.index, dtype=float)
+    close_series = _close_series(close)
+    if high_series.empty or low_series.empty:
+        raise ValueError("high and low must contain at least one value")
+    if not high_series.index.equals(close_series.index) or not low_series.index.equals(
+        close_series.index
+    ):
+        raise ValueError("high, low, and close must use identical indexes")
+
+    lowest_low = low_series.rolling(k).min()
+    highest_high = high_series.rolling(k).max()
+    raw_k = (close_series - lowest_low) / (highest_high - lowest_low).replace(
+        0.0, math.nan
+    ) * 100.0
+    if smooth_period is not None and smooth_period > 1:
+        raw_k = raw_k.rolling(smooth_period).mean()
+    return raw_k, raw_k.rolling(d).mean()

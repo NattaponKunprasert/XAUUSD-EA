@@ -7,6 +7,7 @@ from xauusd_ea.indicators import (
     exponential_moving_average,
     macd,
     relative_strength_index,
+    stochastic_oscillator,
 )
 
 
@@ -185,3 +186,53 @@ def test_average_true_range_rejects_invalid_period_or_misaligned_prices():
         average_true_range(high, low, close, 0)
     with pytest.raises(ValueError, match="identical indexes"):
         average_true_range(high.reset_index(drop=True), low, close, 3)
+
+
+def test_stochastic_oscillator_uses_candidate_parameters():
+    high, low, close = _ohlc()
+    k_line, d_line = stochastic_oscillator(high, low, close, k=3, d=2, smooth=2)
+    other_k, other_d = stochastic_oscillator(high, low, close, k=4, d=3, smooth=1)
+
+    lowest_low = low.rolling(3).min()
+    highest_high = high.rolling(3).max()
+    expected_k = (
+        (close - lowest_low)
+        / (highest_high - lowest_low).replace(0.0, float("nan"))
+        * 100.0
+    ).rolling(2).mean()
+    pd.testing.assert_series_equal(k_line, expected_k)
+    pd.testing.assert_series_equal(d_line, expected_k.rolling(2).mean())
+    assert not k_line.equals(other_k)
+    assert not d_line.equals(other_d)
+
+
+def test_stochastic_oscillator_ignores_future_ohlc_mutations():
+    high, low, close = _ohlc()
+    original_k, original_d = stochastic_oscillator(high, low, close, k=3, d=2, smooth=2)
+    high.iloc[6:] = [900.0, 800.0]
+    low.iloc[6:] = [1.0, 2.0]
+    close.iloc[6:] = [500.0, 3.0]
+    changed_k, changed_d = stochastic_oscillator(high, low, close, k=3, d=2, smooth=2)
+
+    pd.testing.assert_series_equal(original_k.iloc[:6], changed_k.iloc[:6])
+    pd.testing.assert_series_equal(original_d.iloc[:6], changed_d.iloc[:6])
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"k": 0, "d": 2, "smooth": 2}, "positive"),
+        ({"k": 3, "d": 0, "smooth": 2}, "positive"),
+        ({"k": 3, "d": 2, "smooth": 0}, "smooth period"),
+    ],
+)
+def test_stochastic_oscillator_rejects_invalid_parameters(kwargs, message):
+    high, low, close = _ohlc()
+    with pytest.raises(ValueError, match=message):
+        stochastic_oscillator(high, low, close, **kwargs)
+
+
+def test_stochastic_oscillator_rejects_misaligned_prices():
+    high, low, close = _ohlc()
+    with pytest.raises(ValueError, match="identical indexes"):
+        stochastic_oscillator(high.reset_index(drop=True), low, close, 3, 2)
