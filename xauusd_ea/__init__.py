@@ -6,6 +6,7 @@ from .baseline import (
     load_broker_profile,
 )
 from .exits import fibonacci_extension_target
+from .execution import apply_execution_price, commission_per_side
 from .filters import passes_entry_filters
 from .indicators import bollinger_bands, macd, stochastic_oscillator
 from .validation import (
@@ -23,6 +24,8 @@ from .validation import (
 __all__ = [
     "BrokerProfile",
     "bollinger_bands",
+    "apply_execution_price",
+    "commission_per_side",
     "fibonacci_extension_target",
     "passes_entry_filters",
     "macd",
