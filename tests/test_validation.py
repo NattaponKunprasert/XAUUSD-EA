@@ -26,6 +26,12 @@ from xauusd_ea.baseline import (
     require_runtime_broker_spec,
 )
 from xauusd_ea.exits import fibonacci_extension_target
+from xauusd_ea.execution import (
+    apply_execution_price,
+    commission_per_side,
+    spread_price,
+    to_price_units,
+)
 from xauusd_ea.filters import passes_entry_filters
 from xauusd_ea.indicators import (
     average_true_range,
@@ -150,6 +156,10 @@ def _active_notebook_run_backtest():
         "merge_runtime_broker_overrides": merge_runtime_broker_overrides,
         "require_runtime_broker_spec": require_runtime_broker_spec,
         "_calculate_fib_target_safe": fibonacci_extension_target,
+        "_apply_execution_price_safe": apply_execution_price,
+        "_commission_per_side_safe": commission_per_side,
+        "_spread_price_safe": spread_price,
+        "_to_price_units_safe": to_price_units,
         "_passes_entry_filters_safe": passes_entry_filters,
         "_atr": average_true_range,
         "_bollinger": bollinger_bands,
@@ -306,6 +316,27 @@ def test_active_notebook_routes_strategy_metrics_through_canonical_helper():
     assert "out = out[out[\"# Trades\"] >= int(min_trades)]" not in source
 
 
+def test_active_notebook_routes_execution_costs_through_canonical_helpers():
+    source = _notebook_cell_source(18)
+
+    assert (
+        "from xauusd_ea.execution import apply_execution_price as "
+        "_apply_execution_price_safe" in source
+    )
+    assert "commission_per_side as _commission_per_side_safe" in source
+    assert "spread_price as _spread_price_safe" in source
+    assert "to_price_units as _to_price_units_safe" in source
+    assert "return _to_price_units_safe(value, spec, friction)" in source
+    assert "return _spread_price_safe(friction, spec)" in source
+    assert (
+        "return _apply_execution_price_safe(price, side, friction, spec, "
+        "timestamp=timestamp)" in source
+    )
+    assert "return _commission_per_side_safe(lot, friction, spec)" in source
+    assert "executed = price + spread + slip" not in source
+    assert "return float(lot) * float(rt_rate) / 2.0" not in source
+
+
 def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
     source = _notebook_cell_source(18)
     assert "entry_atr = float(atr_values[signal_i])" in source
@@ -439,7 +470,8 @@ def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost
     assert "context='apply_swap_cost'" in source
     assert 'point = runtime_spec[\'point\']' in source
     assert 'cost_value_mode = str(runtime_spec[\'cost_value_mode\']).lower()' in source
-    assert 'source = str(runtime_spec.get("ohlc_price_source", friction.get("ohlc_price_source", "bid"))).lower()' in source
+    assert "from xauusd_ea.execution import apply_execution_price" in source
+    assert "return _apply_execution_price_safe(price, side, friction, spec, timestamp=timestamp)" in source
     assert 'contract_size = cfg["contract_size"]' in source
     assert "runtime_spec['commission_per_lot_round_turn']" in source
     assert "runtime_spec['spread_points']" in source

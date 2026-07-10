@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Isolate the active engine's strategy metrics and cleaning gates so notebook scoring shares one importable deterministic implementation with explicit regression coverage.
+Isolate the active engine's execution-price, spread, slippage, and commission math so the notebook shares one importable verified implementation with deterministic regression coverage.
 
 ## Verified inputs
 
@@ -44,6 +44,7 @@ Isolate the active engine's strategy metrics and cleaning gates so notebook scor
 - The active engine now imports canonical entry signal composition logic, preserving AND/OR/VOTE behavior and custom combo resolution while routing notebook wrappers through one tested helper
 - The active engine now imports canonical entry filter routing logic, preserving enabled/disabled filter behavior, failing closed on unknown enabled filters, and applying filters at the already closed signal-bar index before next-bar entry
 - The active engine now imports canonical strategy metric and cleaning helpers, preserving capped scoring for infinite profit factor, drawdown/loss-streak accounting, stopped-early detection, and strict trade/drawdown/win-rate cleaning gates
+- The active engine now imports canonical execution-price and commission helpers, preserving Bid/Ask side mapping, audited baseline/stress spreads, adverse slippage, and verified zero commission while rejecting unknown slippage modes and broker-constant conflicts
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
@@ -56,6 +57,7 @@ Isolate the active engine's strategy metrics and cleaning gates so notebook scor
 - Local verification on 2026-07-09 passed the focused entry/notebook-routing suite (5 tests) and full `python -m pytest -q` (138 tests) after isolating entry signal composition; pytest reported a Windows temp symlink cleanup permission warning after the passing run
 - Local verification on 2026-07-09 passed the focused filter/notebook-routing suite (50 tests) and full `python -m pytest -q` (143 tests) after isolating entry filter routing; pytest reported a Windows temp symlink cleanup permission warning after the passing run
 - Local verification on 2026-07-09 passed the focused metrics/notebook-routing suite (50 tests) and full `python -m pytest -q` (147 tests) after isolating strategy metrics and cleaning; pytest reported a Windows temp symlink cleanup permission warning after the passing run
+- Local verification on 2026-07-10 passed the focused execution/notebook-routing suite (53 tests) and full `python -m pytest -q` (153 tests) after isolating execution-price and commission math; pytest reported the known Windows temp symlink cleanup permission warning after the passing run
 
 ## Broker facts
 
