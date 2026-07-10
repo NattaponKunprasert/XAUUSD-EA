@@ -9,6 +9,7 @@ from .exits import fibonacci_extension_target
 from .execution import apply_execution_price, commission_per_side
 from .filters import passes_entry_filters
 from .indicators import bollinger_bands, macd, stochastic_oscillator
+from .sizing import calculate_position_size
 from .validation import (
     SampleHoldoutSplit,
     UnsafeEvaluationError,
@@ -26,6 +27,7 @@ __all__ = [
     "bollinger_bands",
     "apply_execution_price",
     "commission_per_side",
+    "calculate_position_size",
     "fibonacci_extension_target",
     "passes_entry_filters",
     "macd",
