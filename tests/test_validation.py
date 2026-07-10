@@ -41,6 +41,7 @@ from xauusd_ea.indicators import (
     relative_strength_index,
     stochastic_oscillator,
 )
+from xauusd_ea.sizing import calculate_position_size
 from xauusd_ea.validation import (
     SampleHoldoutSplit,
     UnsafeEvaluationError,
@@ -161,6 +162,7 @@ def _active_notebook_run_backtest():
         "_spread_price_safe": spread_price,
         "_to_price_units_safe": to_price_units,
         "_passes_entry_filters_safe": passes_entry_filters,
+        "_calculate_position_size_safe": calculate_position_size,
         "_atr": average_true_range,
         "_bollinger": bollinger_bands,
         "_ema": exponential_moving_average,
@@ -472,7 +474,6 @@ def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost
     assert 'cost_value_mode = str(runtime_spec[\'cost_value_mode\']).lower()' in source
     assert "from xauusd_ea.execution import apply_execution_price" in source
     assert "return _apply_execution_price_safe(price, side, friction, spec, timestamp=timestamp)" in source
-    assert 'contract_size = cfg["contract_size"]' in source
     assert "runtime_spec['commission_per_lot_round_turn']" in source
     assert "runtime_spec['spread_points']" in source
     assert 'runtime_spec["swap_long_per_lot"]' in source
@@ -505,15 +506,16 @@ def test_active_notebook_short_cost_paths_use_directional_swap_and_active_spec()
 def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up():
     source = _notebook_code_source()
 
-    assert 'runtime_spec = require_runtime_broker_spec(globals().get("XAUUSD_SPEC"))' in source
-    assert 'cfg = merge_runtime_broker_overrides(' in source
-    assert 'context="calculate_position_size"' in source
+    assert (
+        "from xauusd_ea.sizing import calculate_position_size as "
+        "_calculate_position_size_safe" in source
+    )
+    assert "return _calculate_position_size_safe(" in source
     assert "_calculate_lot(cash, entry_exec, stop_loss, sizing_cfg, atr_value=entry_atr, spec=broker_spec)" in source
-    assert 'contract_size = cfg["contract_size"]' in source
-    assert 'min_lot = cfg["min_lot"]' in source
-    assert 'if lot_size < min_lot:' in source
-    assert 'return 0.0' in source
-    assert 'steps = int((lot_size - min_lot) / lot_step + 1e-12)' in source
+    assert 'cfg["atr"] = atr_value' in source
+    assert "runtime_spec=runtime_spec" in source
+    assert "risk_amount = (risk_percent / 100.0) * capital" not in source
+    assert "steps = int((lot_size - min_lot) / lot_step + 1e-12)" not in source
     assert 'round(round(lot / step) * step, precision)' not in source
     assert 'lot_size = max(min_lot, min(lot_size, max_lot))' not in source
     assert 'contract_size = config.get("contract_size", runtime_spec["contract_size"])' not in source
