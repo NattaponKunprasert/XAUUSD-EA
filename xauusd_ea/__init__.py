@@ -1,6 +1,6 @@
 """Small, auditable XAUUSD EA research helpers."""
 
-from .accounting import gross_pnl, mark_to_market_equity
+from .accounting import close_position, gross_pnl, mark_to_market_equity
 from .baseline import (
     BrokerProfile,
     assert_runtime_broker_spec_matches_profile,
@@ -25,6 +25,7 @@ from .validation import (
 
 __all__ = [
     "BrokerProfile",
+    "close_position",
     "gross_pnl",
     "mark_to_market_equity",
     "bollinger_bands",
