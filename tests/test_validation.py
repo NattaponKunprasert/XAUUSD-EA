@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from xauusd_ea.accounting import gross_pnl
+from xauusd_ea.accounting import gross_pnl, mark_to_market_equity
 from xauusd_ea.baseline import (
     assert_runtime_broker_spec_matches_profile,
     crossed_rollover_swap_cash,
@@ -165,6 +165,7 @@ def _active_notebook_run_backtest():
         "_passes_entry_filters_safe": passes_entry_filters,
         "_calculate_position_size_safe": calculate_position_size,
         "_gross_pnl_safe": gross_pnl,
+        "_mark_to_market_equity_safe": mark_to_market_equity,
         "_atr": average_true_range,
         "_bollinger": bollinger_bands,
         "_ema": exponential_moving_average,
@@ -342,7 +343,20 @@ def test_active_notebook_routes_gross_pnl_through_canonical_helper():
     assert "from xauusd_ea.accounting import gross_pnl as _gross_pnl_safe" in source
     assert "return _gross_pnl_safe(entry_price, exit_price, lot, direction, spec)" in source
     assert source.count("def _gross_pnl(") == 1
-    assert source.count("gross = _gross_pnl(") == 2
+    assert source.count("gross = _gross_pnl(") == 1
+
+
+def test_active_notebook_routes_mark_to_market_through_canonical_helper():
+    source = _notebook_cell_source(18)
+
+    assert (
+        "mark_to_market_equity as _mark_to_market_equity_safe" in source
+    )
+    assert "return _mark_to_market_equity_safe(" in source
+    assert source.count(
+        "exit_side = \"sell\" if direction == \"long\" else \"buy\""
+    ) == 1
+    assert "return float(cash + gross - exit_commission)" not in source
 
 
 def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
