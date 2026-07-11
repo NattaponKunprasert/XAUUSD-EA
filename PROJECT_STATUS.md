@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Isolate the active engine's mark-to-market equity calculation so conservative liquidation value has one importable verified implementation with deterministic regression coverage.
+Isolate the active engine's realized position-close accounting so executable exit conversion, cash realization, and trade-ledger PnL have one importable verified implementation with deterministic regression coverage.
 
 ## Verified inputs
 
@@ -48,6 +48,7 @@ Isolate the active engine's mark-to-market equity calculation so conservative li
 - The active engine now imports canonical fixed, risk-percent, and ATR-based sizing, uses only the frozen entry ATR, floors volume to the verified XM Micro step, and treats sub-minimum sizes as no-trade without permitting broker-constant overrides
 - The active engine now imports canonical direction-aware gross PnL for both mark-to-market and realized accounting, using only the verified XM Micro contract size instead of an undefined notebook-runtime helper
 - The active engine now imports canonical mark-to-market equity accounting, preserving Bid/Ask liquidation, adverse slippage, verified zero commission, and XM Micro contract size `1`
+- The active engine now imports canonical position-close accounting, preserving Bid/Ask exit execution, adverse slippage, single-booked swap and commission cash flows, and complete realized trade-ledger fields
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
@@ -64,6 +65,7 @@ Isolate the active engine's mark-to-market equity calculation so conservative li
 - Local verification on 2026-07-10 passed the focused sizing/validation/accounting/broker/baseline suite (118 tests) and full `python -m pytest -q` (161 tests) after isolating active position sizing; pytest reported the known Windows temp symlink cleanup permission warning after both passing runs
 - Local verification on 2026-07-11 passed the focused accounting/validation/baseline suite (100 tests) and full `python -m pytest -q` (168 tests) after isolating direction-aware gross PnL; pytest reported the known Windows temp symlink cleanup permission warning after both passing runs
 - Local verification on 2026-07-11 passed the focused accounting/execution/validation/baseline suite (104 tests) and full `python -m pytest -q` (172 tests) after isolating mark-to-market equity; pytest reported the known Windows temp symlink cleanup permission warning after the passing full run
+- Local verification on 2026-07-11 passed the focused accounting/execution/validation/baseline suite (109 tests) and full `python -m pytest -q` (177 tests) after isolating position-close accounting; pytest reported the known Windows temp-symlink cleanup permission warning after the passing full run
 
 ## Broker facts
 

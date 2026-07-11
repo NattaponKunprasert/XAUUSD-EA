@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from xauusd_ea.accounting import gross_pnl, mark_to_market_equity
+from xauusd_ea.accounting import close_position, mark_to_market_equity
 from xauusd_ea.baseline import (
     assert_runtime_broker_spec_matches_profile,
     crossed_rollover_swap_cash,
@@ -164,8 +164,8 @@ def _active_notebook_run_backtest():
         "_to_price_units_safe": to_price_units,
         "_passes_entry_filters_safe": passes_entry_filters,
         "_calculate_position_size_safe": calculate_position_size,
-        "_gross_pnl_safe": gross_pnl,
         "_mark_to_market_equity_safe": mark_to_market_equity,
+        "_close_position_safe": close_position,
         "_atr": average_true_range,
         "_bollinger": bollinger_bands,
         "_ema": exponential_moving_average,
@@ -337,13 +337,12 @@ def test_active_notebook_routes_execution_costs_through_canonical_helpers():
     assert "return float(lot) * float(rt_rate) / 2.0" not in source
 
 
-def test_active_notebook_routes_gross_pnl_through_canonical_helper():
+def test_active_notebook_has_no_competing_gross_pnl_implementation():
     source = _notebook_cell_source(18)
 
-    assert "from xauusd_ea.accounting import gross_pnl as _gross_pnl_safe" in source
-    assert "return _gross_pnl_safe(entry_price, exit_price, lot, direction, spec)" in source
-    assert source.count("def _gross_pnl(") == 1
-    assert source.count("gross = _gross_pnl(") == 1
+    assert "def _gross_pnl(" not in source
+    assert "price_change * lot" not in source
+    assert "close_position as _close_position_safe" in source
 
 
 def test_active_notebook_routes_mark_to_market_through_canonical_helper():
@@ -353,10 +352,17 @@ def test_active_notebook_routes_mark_to_market_through_canonical_helper():
         "mark_to_market_equity as _mark_to_market_equity_safe" in source
     )
     assert "return _mark_to_market_equity_safe(" in source
-    assert source.count(
-        "exit_side = \"sell\" if direction == \"long\" else \"buy\""
-    ) == 1
+    assert "exit_side = \"sell\" if direction == \"long\" else \"buy\"" not in source
     assert "return float(cash + gross - exit_commission)" not in source
+
+
+def test_active_notebook_routes_position_close_through_canonical_helper():
+    source = _notebook_cell_source(18)
+
+    assert "close_position as _close_position_safe" in source
+    assert "return _close_position_safe(" in source
+    assert source.count("def _close_open_position(") == 1
+    assert "trade_pnl = gross - open_pos[\"entry_commission\"]" not in source
 
 
 def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
@@ -516,8 +522,8 @@ def test_active_notebook_short_cost_paths_use_directional_swap_and_active_spec()
     assert 'swap_long_per_lot_usd=float(merged_friction.get("swap_long_per_lot", runtime_spec["swap_long_per_lot"]))' in source
     assert 'swap_short_per_lot_usd=float(merged_friction.get("swap_short_per_lot", runtime_spec["swap_short_per_lot"]))' in source
     assert "_book_crossed_rollover_swaps(cash, open_pos, ts, friction, broker_spec)" in source
-    assert '_commission_per_side(open_pos["lot"], friction, broker_spec)' in source
-    assert 'swap_cash = float(open_pos.get("swap_cash", 0.0))' in source
+    assert "_close_position_safe(open_pos, exit_raw" in source
+    assert 'swap_cash = float(open_pos.get("swap_cash", 0.0))' not in source
     assert "_commission_per_side(lot, friction, broker_spec)" in source
     assert '_swap_cash(open_pos["lot"], bars_held, friction)' not in source
     assert '_commission_per_side(open_pos["lot"], friction)' not in source
