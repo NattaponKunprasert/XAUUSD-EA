@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from xauusd_ea.accounting import gross_pnl
 from xauusd_ea.baseline import (
     assert_runtime_broker_spec_matches_profile,
     crossed_rollover_swap_cash,
@@ -163,6 +164,7 @@ def _active_notebook_run_backtest():
         "_to_price_units_safe": to_price_units,
         "_passes_entry_filters_safe": passes_entry_filters,
         "_calculate_position_size_safe": calculate_position_size,
+        "_gross_pnl_safe": gross_pnl,
         "_atr": average_true_range,
         "_bollinger": bollinger_bands,
         "_ema": exponential_moving_average,
@@ -172,11 +174,6 @@ def _active_notebook_run_backtest():
         "entry_filters": {},
         "_valid_stop_target": lambda *args, **kwargs: True,
         "_intrabar_stop_target": lambda *args, **kwargs: (None, None),
-        "_gross_pnl": lambda entry, exit_price, lot, direction, spec: (
-            (exit_price - entry) if direction == "long" else (entry - exit_price)
-        )
-        * lot
-        * spec["contract_size"],
     }
     module = ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[]))
     exec(compile(module, "<active-notebook-functions>", "exec"), namespace)
@@ -337,6 +334,15 @@ def test_active_notebook_routes_execution_costs_through_canonical_helpers():
     assert "return _commission_per_side_safe(lot, friction, spec)" in source
     assert "executed = price + spread + slip" not in source
     assert "return float(lot) * float(rt_rate) / 2.0" not in source
+
+
+def test_active_notebook_routes_gross_pnl_through_canonical_helper():
+    source = _notebook_cell_source(18)
+
+    assert "from xauusd_ea.accounting import gross_pnl as _gross_pnl_safe" in source
+    assert "return _gross_pnl_safe(entry_price, exit_price, lot, direction, spec)" in source
+    assert source.count("def _gross_pnl(") == 1
+    assert source.count("gross = _gross_pnl(") == 2
 
 
 def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
