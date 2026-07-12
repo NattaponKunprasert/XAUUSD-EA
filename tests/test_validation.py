@@ -17,7 +17,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from xauusd_ea.accounting import close_position, mark_to_market_equity
+from xauusd_ea.accounting import (
+    book_crossed_rollover_swaps,
+    close_position,
+    mark_to_market_equity,
+)
 from xauusd_ea.baseline import (
     assert_runtime_broker_spec_matches_profile,
     crossed_rollover_swap_cash,
@@ -165,6 +169,7 @@ def _active_notebook_run_backtest():
         "_passes_entry_filters_safe": passes_entry_filters,
         "_calculate_position_size_safe": calculate_position_size,
         "_mark_to_market_equity_safe": mark_to_market_equity,
+        "_book_crossed_rollover_swaps_safe": book_crossed_rollover_swaps,
         "_close_position_safe": close_position,
         "_atr": average_true_range,
         "_bollinger": bollinger_bands,
@@ -442,8 +447,12 @@ def test_active_notebook_inspect_path_requires_clean_export():
 def test_active_notebook_swap_path_uses_crossed_rollover_accounting():
     source = _notebook_code_source()
 
-    assert "crossed_rollover_swap_cash(" in source
+    assert (
+        "book_crossed_rollover_swaps as _book_crossed_rollover_swaps_safe"
+        in source
+    )
     assert "_book_crossed_rollover_swaps(" in source
+    assert "return _book_crossed_rollover_swaps_safe(" in source
     assert '"last_swap_check_time"' in source
     assert '"swap_cash": 0.0' in source
     assert "days_held = float(bars_held) / bars_per_day" not in source
@@ -502,8 +511,7 @@ def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost
     assert "return _apply_execution_price_safe(price, side, friction, spec, timestamp=timestamp)" in source
     assert "runtime_spec['commission_per_lot_round_turn']" in source
     assert "runtime_spec['spread_points']" in source
-    assert 'runtime_spec["swap_long_per_lot"]' in source
-    assert 'runtime_spec["swap_short_per_lot"]' in source
+    assert "book_crossed_rollover_swaps as _book_crossed_rollover_swaps_safe" in source
     assert 'globals().get("XAUUSD_SPEC", {})' not in source
     assert "point = config.get('point', runtime_spec['point'])" not in source
     assert "cost_value_mode = str(config.get('cost_value_mode', runtime_spec['cost_value_mode'])).lower()" not in source
@@ -513,14 +521,9 @@ def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost
 def test_active_notebook_short_cost_paths_use_directional_swap_and_active_spec():
     source = _notebook_code_source()
 
-    assert (
-        'def _swap_cash(\n    lot: float,\n    entry_time,\n    current_time,\n    friction: dict,\n    direction: str,\n    spec: dict = XAUUSD_SPEC,\n    last_swap_check_time=None,\n) -> float:'
-        in source
-    )
-    assert 'context="_swap_cash"' in source
-    assert "crossed_rollover_swap_cash(" in source
-    assert 'swap_long_per_lot_usd=float(merged_friction.get("swap_long_per_lot", runtime_spec["swap_long_per_lot"]))' in source
-    assert 'swap_short_per_lot_usd=float(merged_friction.get("swap_short_per_lot", runtime_spec["swap_short_per_lot"]))' in source
+    assert "def _swap_cash(" not in source
+    assert "crossed_rollover_swap_cash(" not in source
+    assert "return _book_crossed_rollover_swaps_safe(" in source
     assert "_book_crossed_rollover_swaps(cash, open_pos, ts, friction, broker_spec)" in source
     assert "_close_position_safe(open_pos, exit_raw" in source
     assert 'swap_cash = float(open_pos.get("swap_cash", 0.0))' not in source

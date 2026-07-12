@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from xauusd_ea.accounting import close_position, gross_pnl, mark_to_market_equity
+from xauusd_ea.accounting import (
+    book_crossed_rollover_swaps,
+    close_position,
+    gross_pnl,
+    mark_to_market_equity,
+)
 from xauusd_ea.baseline import (
     assert_runtime_broker_spec_matches_profile,
     load_broker_profile,
@@ -31,6 +36,69 @@ def _open_position(direction: str = "long") -> dict:
         "take_profit": 2012.0 if direction == "long" else 1988.0,
         "swap_cash": 2.0,
     }
+
+
+def test_book_crossed_rollover_swaps_books_wednesday_triple_once():
+    spec = _runtime_spec()
+    position = _open_position("long")
+    position.update(
+        entry_time="2026-01-06 23:00",
+        last_swap_check_time="2026-01-06 23:00",
+        swap_cash=0.0,
+    )
+
+    cash = book_crossed_rollover_swaps(
+        1000.0, position, "2026-01-07 00:00", {}, spec
+    )
+
+    expected = spec["swap_long_per_lot"] * position["lot"] * 3
+    assert cash == pytest.approx(1000.0 + expected)
+    assert position["swap_cash"] == pytest.approx(expected)
+    assert str(position["last_swap_check_time"]) == "2026-01-07 00:00:00"
+
+    unchanged = book_crossed_rollover_swaps(
+        cash, position, "2026-01-07 00:00", {}, spec
+    )
+    assert unchanged == pytest.approx(cash)
+    assert position["swap_cash"] == pytest.approx(expected)
+
+
+def test_book_crossed_rollover_swaps_uses_short_rate_and_skips_weekend():
+    spec = _runtime_spec()
+    position = _open_position("short")
+    position.update(entry_time="2026-01-09 23:00", swap_cash=0.0)
+
+    cash = book_crossed_rollover_swaps(
+        1000.0, position, "2026-01-12 00:00", {}, spec
+    )
+
+    expected = spec["swap_short_per_lot"] * position["lot"]
+    assert cash == pytest.approx(1000.0 + expected)
+    assert position["swap_cash"] == pytest.approx(expected)
+
+
+def test_book_crossed_rollover_swaps_rejects_invalid_state_and_broker_override():
+    spec = _runtime_spec()
+    with pytest.raises(ValueError, match="missing required fields"):
+        book_crossed_rollover_swaps(1000.0, {}, "2026-01-07", {}, spec)
+
+    invalid = _open_position("buy")
+    with pytest.raises(ValueError, match="direction must be"):
+        book_crossed_rollover_swaps(1000.0, invalid, "2026-01-07", {}, spec)
+
+    reversed_time = _open_position()
+    reversed_time["last_swap_check_time"] = "2026-01-08"
+    with pytest.raises(ValueError, match="must not precede"):
+        book_crossed_rollover_swaps(
+            1000.0, reversed_time, "2026-01-07", {}, spec
+        )
+
+    conflicting = dict(spec)
+    conflicting["swap_long_per_lot"] = -1.0
+    with pytest.raises(ValueError, match="no longer matches"):
+        book_crossed_rollover_swaps(
+            1000.0, _open_position(), "2026-01-07", {}, conflicting
+        )
 
 
 def test_gross_pnl_uses_verified_micro_contract_for_long_and_short():
