@@ -16,6 +16,30 @@ from .execution import to_price_units
 SUPPORTED_FIBONACCI_EXTENSIONS = (1.618, 2.0, 2.618)
 
 
+def max_holding_exit_due(
+    entry_index: int,
+    current_index: int,
+    max_holding_bars: int,
+) -> bool:
+    """Return whether a position has reached its configured bar limit.
+
+    The entry bar has zero completed holding bars. A positive limit becomes
+    due exactly when ``current_index - entry_index`` reaches that limit;
+    non-positive limits disable the time exit.
+    """
+    if isinstance(entry_index, bool) or not isinstance(entry_index, int):
+        raise ValueError("entry_index must be an integer")
+    if isinstance(current_index, bool) or not isinstance(current_index, int):
+        raise ValueError("current_index must be an integer")
+    if isinstance(max_holding_bars, bool) or not isinstance(max_holding_bars, int):
+        raise ValueError("max_holding_bars must be an integer")
+    if entry_index < 0 or current_index < entry_index:
+        raise ValueError("current_index must be at or after a non-negative entry_index")
+    if max_holding_bars <= 0:
+        return False
+    return current_index - entry_index >= max_holding_bars
+
+
 def next_trailing_stop(
     entry_price: float,
     current_stop: float,

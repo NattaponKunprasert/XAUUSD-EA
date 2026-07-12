@@ -7,7 +7,11 @@ from xauusd_ea.baseline import (
     assert_runtime_broker_spec_matches_profile,
     load_broker_profile,
 )
-from xauusd_ea.exits import fibonacci_extension_target, next_trailing_stop
+from xauusd_ea.exits import (
+    fibonacci_extension_target,
+    max_holding_exit_due,
+    next_trailing_stop,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +70,34 @@ def test_fibonacci_target_rejects_flat_closed_bar_range():
 
     with pytest.raises(ValueError, match="swing range must be positive"):
         fibonacci_extension_target(100.0, flat, 1, "long", [1.618])
+
+
+def test_max_holding_exit_is_due_exactly_at_the_configured_bar_limit():
+    assert not max_holding_exit_due(10, 10, 3)
+    assert not max_holding_exit_due(10, 12, 3)
+    assert max_holding_exit_due(10, 13, 3)
+    assert max_holding_exit_due(10, 14, 3)
+
+
+@pytest.mark.parametrize("disabled_limit", [0, -1])
+def test_max_holding_exit_non_positive_limits_are_disabled(disabled_limit):
+    assert not max_holding_exit_due(10, 100, disabled_limit)
+
+
+@pytest.mark.parametrize(
+    ("entry_index", "current_index", "max_bars", "message"),
+    [
+        (-1, 0, 3, "non-negative entry_index"),
+        (4, 3, 3, "at or after"),
+        (1.5, 3, 3, "entry_index must be an integer"),
+        (1, 3, 3.0, "max_holding_bars must be an integer"),
+    ],
+)
+def test_max_holding_exit_rejects_invalid_index_state(
+    entry_index, current_index, max_bars, message
+):
+    with pytest.raises(ValueError, match=message):
+        max_holding_exit_due(entry_index, current_index, max_bars)
 
 
 def test_atr_trailing_stop_is_directional_and_never_moves_backwards():
