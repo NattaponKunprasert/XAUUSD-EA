@@ -30,7 +30,11 @@ from xauusd_ea.baseline import (
     merge_runtime_broker_overrides,
     require_runtime_broker_spec,
 )
-from xauusd_ea.exits import fibonacci_extension_target, next_trailing_stop
+from xauusd_ea.exits import (
+    fibonacci_extension_target,
+    max_holding_exit_due,
+    next_trailing_stop,
+)
 from xauusd_ea.execution import (
     apply_execution_price,
     commission_per_side,
@@ -162,6 +166,7 @@ def _active_notebook_run_backtest():
         "merge_runtime_broker_overrides": merge_runtime_broker_overrides,
         "require_runtime_broker_spec": require_runtime_broker_spec,
         "_calculate_fib_target_safe": fibonacci_extension_target,
+        "_max_holding_exit_due_safe": max_holding_exit_due,
         "_next_trailing_stop_safe": next_trailing_stop,
         "_apply_execution_price_safe": apply_execution_price,
         "_commission_per_side_safe": commission_per_side,
@@ -266,6 +271,17 @@ def test_active_notebook_routes_trailing_stop_through_canonical_helper():
     assert "current_atr=current_atr" in source
     assert "dist = current_atr * mult" not in source
     assert "steps = math.floor(max(0.0, favourable) / min_step)" not in source
+
+
+def test_active_notebook_routes_max_holding_exit_through_canonical_helper():
+    source = _notebook_code_source()
+    active_source = _notebook_cell_source(18)
+
+    assert "def check_max_holding(" not in source
+    assert "def legacy_check_max_holding(" in source
+    assert "max_holding_exit_due as _max_holding_exit_due_safe" in active_source
+    assert "_max_holding_exit_due_safe(" in active_source
+    assert "bars_held >= max_hold" not in active_source
 
 
 def test_active_notebook_uses_canonical_candidate_indicator_math():

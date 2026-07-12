@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Isolate the active engine's close-bar trailing-stop update so ATR, percent, and broker-point step trails have one importable verified implementation with deterministic long/short regression coverage.
+Isolate the active engine's maximum-holding-bar exit so its exact bar-boundary behavior has one importable verified implementation with deterministic off-by-one regression coverage.
 
 ## Verified inputs
 
@@ -51,6 +51,7 @@ Isolate the active engine's close-bar trailing-stop update so ATR, percent, and 
 - The active engine now imports canonical position-close accounting, preserving Bid/Ask exit execution, adverse slippage, single-booked swap and commission cash flows, and complete realized trade-ledger fields
 - The active engine now imports canonical crossed-rollover swap booking, preserving directional verified broker rates, Wednesday triple swap, weekend skips, and exactly-once cash and position accumulation
 - The active engine now imports canonical close-bar trailing-stop updates, preserving ATR, percent, and broker-point step behavior while preventing long/short stops from moving backward
+- The active engine now imports canonical maximum-holding-bar exit timing, preserving disabled limits and exiting exactly when the configured number of completed holding bars is reached
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
@@ -70,6 +71,7 @@ Isolate the active engine's close-bar trailing-stop update so ATR, percent, and 
 - Local verification on 2026-07-11 passed the focused accounting/execution/validation/baseline suite (109 tests) and full `python -m pytest -q` (177 tests) after isolating position-close accounting; pytest reported the known Windows temp-symlink cleanup permission warning after the passing full run
 - Local verification on 2026-07-12 passed the focused accounting/validation/broker/baseline suite (124 tests) and full `python -m pytest -q` (180 tests) after isolating crossed-rollover swap booking; pytest reported the known Windows temp-symlink cleanup permission warning after the passing full run
 - Local verification on 2026-07-12 passed the focused exit/validation/accounting/execution/baseline suite (121 tests) and full `python -m pytest -q` (184 tests) after isolating close-bar trailing-stop updates; pytest reported the known Windows temp-symlink cleanup permission warning after the passing full run
+- Local verification on 2026-07-12 passed the focused exit/validation suite (68 tests) and full `python -m pytest -q` (192 tests) after isolating maximum-holding-bar exit timing; pytest reported the known Windows temp-symlink cleanup permission warning after the passing full run
 
 ## Broker facts
 
