@@ -34,6 +34,7 @@ from xauusd_ea.exits import (
     fibonacci_extension_target,
     max_holding_exit_due,
     next_trailing_stop,
+    resolve_intrabar_stop_target,
 )
 from xauusd_ea.execution import (
     apply_execution_price,
@@ -168,6 +169,7 @@ def _active_notebook_run_backtest():
         "_calculate_fib_target_safe": fibonacci_extension_target,
         "_max_holding_exit_due_safe": max_holding_exit_due,
         "_next_trailing_stop_safe": next_trailing_stop,
+        "_intrabar_stop_target_safe": resolve_intrabar_stop_target,
         "_apply_execution_price_safe": apply_execution_price,
         "_commission_per_side_safe": commission_per_side,
         "_spread_price_safe": spread_price,
@@ -185,7 +187,6 @@ def _active_notebook_run_backtest():
         "_stochastic": stochastic_oscillator,
         "entry_filters": {},
         "_valid_stop_target": lambda *args, **kwargs: True,
-        "_intrabar_stop_target": lambda *args, **kwargs: (None, None),
     }
     module = ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[]))
     exec(compile(module, "<active-notebook-functions>", "exec"), namespace)
@@ -282,6 +283,14 @@ def test_active_notebook_routes_max_holding_exit_through_canonical_helper():
     assert "max_holding_exit_due as _max_holding_exit_due_safe" in active_source
     assert "_max_holding_exit_due_safe(" in active_source
     assert "bars_held >= max_hold" not in active_source
+
+
+def test_active_notebook_routes_intrabar_exits_through_canonical_helper():
+    active_source = _notebook_cell_source(18)
+
+    assert "resolve_intrabar_stop_target as _intrabar_stop_target_safe" in active_source
+    assert active_source.count("_intrabar_stop_target_safe(") == 2
+    assert "_intrabar_stop_target(" not in active_source
 
 
 def test_active_notebook_uses_canonical_candidate_indicator_math():

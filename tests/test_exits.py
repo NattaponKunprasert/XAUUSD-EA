@@ -11,6 +11,7 @@ from xauusd_ea.exits import (
     fibonacci_extension_target,
     max_holding_exit_due,
     next_trailing_stop,
+    resolve_intrabar_stop_target,
 )
 
 
@@ -29,6 +30,69 @@ def _bars() -> pd.DataFrame:
             "low": [98.0, 99.0, 101.0, 1.0],
         }
     )
+
+
+def test_intrabar_long_gap_and_same_bar_conflict_are_conservative():
+    spec = _runtime_spec()
+    position = {
+        "direction": "long",
+        "stop_loss": 1995.0,
+        "take_profit": 2010.0,
+        "stop_loss_is_trailing": False,
+    }
+
+    assert resolve_intrabar_stop_target(
+        position, 1994.0, 2002.0, 1990.0, {}, spec
+    ) == (1994.0, "SL")
+    assert resolve_intrabar_stop_target(
+        position, 2000.0, 2012.0, 1992.0, {}, spec
+    ) == (1995.0, "SL")
+
+
+def test_intrabar_short_uses_ask_triggers_and_returns_raw_bid():
+    spec = _runtime_spec()
+    spread = spec["spread_points"] * spec["point"]
+    position = {
+        "direction": "short",
+        "stop_loss": 2005.0,
+        "take_profit": 1990.0,
+        "stop_loss_is_trailing": False,
+    }
+
+    raw_exit, reason = resolve_intrabar_stop_target(
+        position,
+        2000.0,
+        2005.0 - spread,
+        1988.0,
+        {},
+        spec,
+    )
+
+    assert raw_exit == pytest.approx(2005.0 - spread)
+    assert reason == "SL"
+
+
+def test_intrabar_trailing_reason_and_invalid_state_fail_closed():
+    spec = _runtime_spec()
+    trailing = {
+        "direction": "long",
+        "stop_loss": 2001.0,
+        "take_profit": 2010.0,
+        "stop_loss_is_trailing": True,
+    }
+    assert resolve_intrabar_stop_target(
+        trailing, 2005.0, 2008.0, 2000.0, {}, spec
+    ) == (2001.0, "TrailingStop")
+
+    with pytest.raises(ValueError, match="low <= open <= high"):
+        resolve_intrabar_stop_target(trailing, 2005.0, 2004.0, 2000.0, {}, spec)
+
+    conflicting = dict(spec)
+    conflicting["contract_size"] = 100.0
+    with pytest.raises(ValueError, match="no longer matches"):
+        resolve_intrabar_stop_target(
+            trailing, 2005.0, 2008.0, 2000.0, {}, conflicting
+        )
 
 
 def test_fibonacci_target_uses_only_closed_bars_through_signal_index():
