@@ -30,7 +30,7 @@ from xauusd_ea.baseline import (
     merge_runtime_broker_overrides,
     require_runtime_broker_spec,
 )
-from xauusd_ea.exits import fibonacci_extension_target
+from xauusd_ea.exits import fibonacci_extension_target, next_trailing_stop
 from xauusd_ea.execution import (
     apply_execution_price,
     commission_per_side,
@@ -162,6 +162,7 @@ def _active_notebook_run_backtest():
         "merge_runtime_broker_overrides": merge_runtime_broker_overrides,
         "require_runtime_broker_spec": require_runtime_broker_spec,
         "_calculate_fib_target_safe": fibonacci_extension_target,
+        "_next_trailing_stop_safe": next_trailing_stop,
         "_apply_execution_price_safe": apply_execution_price,
         "_commission_per_side_safe": commission_per_side,
         "_spread_price_safe": spread_price,
@@ -255,6 +256,16 @@ def test_active_notebook_isolates_legacy_fibonacci_target_and_uses_canonical_hel
     )
     assert 'config["exit"].get("fib_levels", [1.618])' in source
     assert "config[\"params\"].get(\"Fibonacci\", {})" not in source
+
+
+def test_active_notebook_routes_trailing_stop_through_canonical_helper():
+    source = _notebook_cell_source(18)
+
+    assert "next_trailing_stop as _next_trailing_stop_safe" in source
+    assert "new_sl = _next_trailing_stop_safe(" in source
+    assert "current_atr=current_atr" in source
+    assert "dist = current_atr * mult" not in source
+    assert "steps = math.floor(max(0.0, favourable) / min_step)" not in source
 
 
 def test_active_notebook_uses_canonical_candidate_indicator_math():

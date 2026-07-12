@@ -1,7 +1,21 @@
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
-from xauusd_ea.exits import fibonacci_extension_target
+from xauusd_ea.baseline import (
+    assert_runtime_broker_spec_matches_profile,
+    load_broker_profile,
+)
+from xauusd_ea.exits import fibonacci_extension_target, next_trailing_stop
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _runtime_spec() -> dict:
+    broker = load_broker_profile(ROOT / "config" / "xm_micro_gold.json")
+    return assert_runtime_broker_spec_matches_profile(broker.to_runtime_spec(), broker)
 
 
 def _bars() -> pd.DataFrame:
@@ -52,3 +66,69 @@ def test_fibonacci_target_rejects_flat_closed_bar_range():
 
     with pytest.raises(ValueError, match="swing range must be positive"):
         fibonacci_extension_target(100.0, flat, 1, "long", [1.618])
+
+
+def test_atr_trailing_stop_is_directional_and_never_moves_backwards():
+    spec = _runtime_spec()
+
+    assert next_trailing_stop(
+        2000.0,
+        1990.0,
+        2010.0,
+        "long",
+        "atr",
+        {"trail_multiplier": 2.0},
+        spec,
+        current_atr=4.0,
+    ) == pytest.approx(2002.0)
+    assert next_trailing_stop(
+        2000.0,
+        2010.0,
+        1990.0,
+        "short",
+        "atr",
+        {"trail_multiplier": 2.0},
+        spec,
+        current_atr=4.0,
+    ) == pytest.approx(1998.0)
+    assert next_trailing_stop(
+        2000.0,
+        2005.0,
+        2010.0,
+        "long",
+        "atr",
+        {"trail_multiplier": 2.0},
+        spec,
+        current_atr=4.0,
+    ) is None
+
+
+def test_percent_and_step_trails_preserve_active_engine_math():
+    spec = _runtime_spec()
+
+    assert next_trailing_stop(
+        2000.0, 1980.0, 2020.0, "long", "percent", {"trail_percent": 0.5}, spec
+    ) == pytest.approx(2009.9)
+    assert next_trailing_stop(
+        2000.0, 1990.0, 2001.2, "long", "step", {"trail_step_pips": 50}, spec
+    ) == pytest.approx(2000.5)
+    assert next_trailing_stop(
+        2000.0, 2010.0, 1998.8, "short", "step", {"trail_step_pips": 50}, spec
+    ) == pytest.approx(1999.5)
+
+
+def test_trailing_stop_rejects_invalid_configuration_and_broker_conflict():
+    spec = _runtime_spec()
+    with pytest.raises(ValueError, match="trail_type must be"):
+        next_trailing_stop(2000.0, 1990.0, 2010.0, "long", "mystery", {}, spec)
+    with pytest.raises(ValueError, match="trail_percent"):
+        next_trailing_stop(
+            2000.0, 1990.0, 2010.0, "long", "percent", {"trail_percent": 0}, spec
+        )
+
+    conflicting = dict(spec)
+    conflicting["contract_size"] = 100.0
+    with pytest.raises(ValueError, match="no longer matches"):
+        next_trailing_stop(
+            2000.0, 1990.0, 2010.0, "long", "percent", {}, conflicting
+        )
