@@ -52,7 +52,7 @@ Isolate the active engine's intrabar stop/target resolution so Bid/Ask triggers,
 - The active engine now imports canonical crossed-rollover swap booking, preserving directional verified broker rates, Wednesday triple swap, weekend skips, and exactly-once cash and position accumulation
 - The active engine now imports canonical close-bar trailing-stop updates, preserving ATR, percent, and broker-point step behavior while preventing long/short stops from moving backward
 - The active engine now imports canonical maximum-holding-bar exit timing, preserving disabled limits and exiting exactly when the configured number of completed holding bars is reached
-- The active engine now imports canonical intrabar stop/target resolution, preserving Bid-triggered long exits, Ask-triggered short exits, actual gap-through bar-open execution in both supported execution modes, and conservative stop-first same-bar ambiguity
+- The active engine now imports canonical intrabar stop/target resolution, preserving Bid-triggered long exits, Ask-triggered short exits, actual gap-through bar-open execution in both supported execution modes, conservative stop-first same-bar ambiguity, and close-bar SL/TP precedence over later reversal/time decisions
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
@@ -75,6 +75,7 @@ Isolate the active engine's intrabar stop/target resolution so Bid/Ask triggers,
 - Local verification on 2026-07-12 passed the focused exit/validation suite (68 tests) and full `python -m pytest -q` (192 tests) after isolating maximum-holding-bar exit timing; pytest reported the known Windows temp-symlink cleanup permission warning after the passing full run
 - Local verification on 2026-07-12 passed the focused exit/execution/accounting/baseline/validation suite (133 tests) and full `python -m pytest -q` (196 tests) after isolating intrabar stop/target resolution; pytest reported the known Windows temp-symlink cleanup permission warning after the passing full run
 - Local verification on 2026-07-12 passed the focused exit/execution/accounting/baseline/validation suite (136 tests) and full `python -m pytest -q` (199 tests) after fixing close-bar gap-through execution to use the actual OHLC open and validating execution modes fail closed; pytest reported the known Windows temp-symlink cleanup permission warning after the passing full run
+- Local verification on 2026-07-12 passed the focused exit/execution/accounting/sizing/baseline/validation suite (153 tests) and full `python -m pytest -q` (203 tests) after making close-bar intrabar SL/TP resolution precede later reversal/time decisions while preserving next-bar-open precedence; pytest reported the known Windows temp-symlink cleanup permission warning after both passing runs
 
 ## Broker facts
 
