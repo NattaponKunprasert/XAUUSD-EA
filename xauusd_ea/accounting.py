@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
-from .baseline import require_runtime_broker_spec
+import pandas as pd
+
+from .baseline import (
+    crossed_rollover_swap_cash,
+    merge_runtime_broker_overrides,
+    require_runtime_broker_spec,
+)
 from .execution import apply_execution_price, commission_per_side
 
 
@@ -79,6 +85,70 @@ def mark_to_market_equity(
     )
     exit_commission = commission_per_side(lot, friction, spec)
     return float(numeric_cash + floating_pnl - exit_commission)
+
+
+def book_crossed_rollover_swaps(
+    cash: float,
+    open_position: MutableMapping[str, Any],
+    current_time,
+    friction: Mapping[str, Any] | None,
+    runtime_spec: Mapping[str, Any],
+) -> float:
+    """Book each newly crossed broker-server rollover exactly once.
+
+    The position stores the last checked timestamp and accumulated swap cash.
+    Swap rates remain sourced from the verified broker runtime specification;
+    conflicting friction overrides fail loudly.
+    """
+    spec = require_runtime_broker_spec(runtime_spec)
+    if not isinstance(open_position, MutableMapping):
+        raise ValueError("open_position must be a mutable mapping")
+    required = ("entry_time", "lot", "direction")
+    missing = [field for field in required if field not in open_position]
+    if missing:
+        raise ValueError(f"open_position is missing required fields: {missing!r}")
+
+    merged = merge_runtime_broker_overrides(
+        spec,
+        friction,
+        context="book_crossed_rollover_swaps",
+        allow_supported_spread_override=True,
+    )
+    numeric_cash = float(cash)
+    lot = float(open_position["lot"])
+    accumulated_swap = float(open_position.get("swap_cash", 0.0))
+    if not all(
+        math.isfinite(value) for value in (numeric_cash, lot, accumulated_swap)
+    ):
+        raise ValueError("cash, lot, and swap_cash must be finite")
+    if lot < 0.0:
+        raise ValueError("lot must be non-negative")
+
+    direction = str(open_position["direction"]).lower()
+    if direction not in {"long", "short"}:
+        raise ValueError("direction must be 'long' or 'short'")
+    last_checked = pd.Timestamp(
+        open_position.get("last_swap_check_time", open_position["entry_time"])
+    )
+    end_time = pd.Timestamp(current_time)
+    if pd.isna(last_checked) or pd.isna(end_time):
+        raise ValueError("rollover timestamps must be valid")
+    if end_time < last_checked:
+        raise ValueError("current_time must not precede last_swap_check_time")
+    swap_total = crossed_rollover_swap_cash(
+        start=last_checked,
+        end=end_time,
+        lot=lot,
+        direction=direction,
+        swap_long_per_lot_usd=float(merged["swap_long_per_lot"]),
+        swap_short_per_lot_usd=float(merged["swap_short_per_lot"]),
+        triple_swap_day=str(spec["triple_swap_day"]),
+    )
+    if swap_total:
+        open_position["swap_cash"] = float(accumulated_swap + swap_total)
+        numeric_cash += swap_total
+    open_position["last_swap_check_time"] = end_time
+    return float(numeric_cash)
 
 
 def close_position(
