@@ -398,4 +398,693 @@ def test_active_notebook_routes_mark_to_market_through_canonical_helper():
     assert "return float(cash + gross - exit_commission)" not in source
 
 
-def test_active_notebook_routes_position_close_through_canonißİ;¶‰ËkºwµçU}¹½Ñ•‰½½­}¡…Í}¹½}ÍÑ…±•}±•…å}½ÕÑÁÕÑÍ}½É}™Õ±±}Í…µÁ±•}™…±±‰…­}Ñ•áĞ ¤è4(€€€¹½Ñ•‰½½­}Ñ•áĞ€ô9=Q	==,¹É•…‘}Ñ•áĞ¡•¹½‘¥¹œô‰ÕÑ˜´àˆ¤4(4(€€€…ÍÍ•ÉĞ€‰™…±±¥¹œ‰…¬Ñ¼™Õ±°µÍ…µÁ±”•Ù…±Õ…Ñ¥½¸ˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(€€€…ÍÍ•ÉĞ€ˆÍåµ‰½°œè€aUUMœˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(€€€…ÍÍ•ÉĞ€ˆ½¹ÑÉ…Ñ}Í¥é”œè€ÄÀÀ¸Àˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(€€€…ÍÍ•ÉĞ€ˆµ¥¹}±½Ğœè€À¸ÀÄˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(€€€…ÍÍ•ÉĞ€ˆµ…á}±½Ğœè€ÔÀ¸Àˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(€€€…ÍÍ•ÉĞ€ˆÍÁÉ•…‘}Á½¥¹ÑÌœè€Ä¸Ôˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(€€€…ÍÍ•ÉĞ€ˆÍÁÉ•…‘}Á½¥¹ÑÌœè€ÄÔÀˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(€€€…ÍÍ•ÉĞ€ˆ½µµ¥ÍÍ¥½¹}Á•É}±½Ğœè€Ü¸Àˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(€€€…ÍÍ•ÉĞ€ˆ½µµ¥ÍÍ¥½¹}Á•É}±½Ñ}É½Õ¹‘}ÑÕÉ¸œè€Ü¸Àˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(€€€…ÍÍ•ÉĞ€ˆÍİ…Á}Á•É}±½Ğœè€´Ä¸Àˆ¹½Ğ¥¸¹½Ñ•‰½½­}Ñ•áĞ4(4(4)ÁåÑ•ÍĞ¹µ…É¬¹Á…É…µ•ÑÉ¥é” 4(€€€€ ‰Ñ¥µ•™É…µ”ˆ°€‰™¥±•¹…µ”ˆ°€‰•áÁ•Ñ•‘}ÍÁ±¥Ğˆ°€‰•áÁ•Ñ•‘}Í…µÁ±•}•¹ˆ°€‰•áÁ•Ñ•‘}¡½±‘½ÕÑ}ÍÑ…ÉĞˆ¤°4(€€€l4(€€€€€€€€ ‰4ÄÔˆ°€‰aUUM}4ÄÔ¹ÍØˆ°€ÔÜÈĞØ°€ˆÈÀÈÔ´ÀØ´ÀÔ€ÀØèĞÔèÀÀˆ°€ˆÈÀÈÔ´ÀØ´ÀÔ€ÀÜèÀÀèÀÀˆ¤°4(€€€€€€€€ ‰4ÌÀˆ°€‰aUUM}4ÌÀ¹ÍØˆ°€ÈàØÈÔ°€ˆÈÀÈÔ´ÀØ´ÀÔ€ÀØèÌÀèÀÀˆ°€ˆÈÀÈÔ´ÀØ´ÀÔ€ÀÜèÀÀèÀÀˆ¤°4(€€€€€€€€ ‰ Äˆ°€‰aUUM} Ä¹ÍØˆ°€ÄĞÌÈÄ°€ˆÈÀÈÔ´ÀØ´ÀÔ€ÀÔèÀÀèÀÀˆ°€ˆÈÀÈÔ´ÀØ´ÀÔ€ÀØèÀÀèÀÀˆ¤°4(€€€€€€€€ ‰ Ğˆ°€‰aUUM} Ğ¹ÍØˆ°€ÌÜĞØ°€ˆÈÀÈÔ´ÀØ´ÀĞ€ÈÀèÀÀèÀÀˆ°€ˆÈÀÈÔ´ÀØ´ÀÔ€ÀÀèÀÀèÀÀˆ¤°4(€€€t°4(¤4)‘•˜Ñ•ÍÑ}ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕÑ}µ…Ñ¡•Í}É•…±}‘…Ñ…Í•Ñ}‰½Õ¹‘…É¥•Ì 4(€€€Ñ¥µ•™É…µ”èÍÑÈ°4(€€€™¥±•¹…µ”èÍÑÈ°4(€€€•áÁ•Ñ•‘}ÍÁ±¥Ğè¥¹Ğ°4(€€€•áÁ•Ñ•‘}Í…µÁ±•}•¹èÍÑÈ°4(€€€•áÁ•Ñ•‘}¡½±‘½ÕÑ}ÍÑ…ÉĞèÍÑÈ°4(¤è4(€€€‘˜€ô±½…‘}µĞÕ}ÍØ¡I==P€¼™¥±•¹…µ”¤4(4(€€€ÍÁ±¥Ğ€ôÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕĞ¡‘˜°Ñ¥µ•™É…µ”õÑ¥µ•™É…µ”°Í…µÁ±•}É…Ñ¥¼ôÀ¸ÜÀ¤4(4(€€€…ÍÍ•ÉĞÍÁ±¥Ğ¹ÍÁ±¥Ñ}¥¹‘•à€ôô•áÁ•Ñ•‘}ÍÁ±¥Ğ4(€€€…ÍÍ•ÉĞÍÁ±¥Ğ¹Í…µÁ±•}ÍÑ…ÉĞ€ôô‘˜¹¥¹‘•álÁt4(€€€…ÍÍ•ÉĞÍÁ±¥Ğ¹Í…µÁ±•}•¹€ôôÁ¹Q¥µ•ÍÑ…µÀ¡•áÁ•Ñ•‘}Í…µÁ±•}•¹¤4(€€€…ÍÍ•ÉĞÍÁ±¥Ğ¹¡½±‘½ÕÑ}ÍÑ…ÉĞ€ôôÁ¹Q¥µ•ÍÑ…µÀ¡•áÁ•Ñ•‘}¡½±‘½ÕÑ}ÍÑ…ÉĞ¤4(€€€…ÍÍ•ÉĞÍÁ±¥Ğ¹¡½±‘½ÕÑ}•¹€ôô‘˜¹¥¹‘•ál´Åt4(€€€…ÍÍ•ÉĞ±•¸¡ÍÁ±¥Ğ¹Í…µÁ±”¤€¬±•¸¡ÍÁ±¥Ğ¹¡½±‘½ÕĞ¤€ôô±•¸¡‘˜¤4(4(4)ÁåÑ•ÍĞ¹µ…É¬¹Á…É…µ•ÑÉ¥é” ‰É…Ñ¥¼ˆ°lÀ¸Ğä°€À¸äÅt¤4)‘•˜Ñ•ÍÑ}ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕÑ}É•©•ÑÍ}É…Ñ¥½}½ÕÑÍ¥‘•}…Õ‘¥Ñ•‘}‰½Õ¹‘Ì¡É…Ñ¥¼è™±½…Ğ¤è4(€€€‘˜€ô}µ…­•}Ñ¥µ•™É…µ•}‘˜¡Á•É¥½‘ÌôÄÀ¤4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰…Õ‘¥Ñ•É…¹”ˆ¤è4(€€€€€€€ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕĞ¡‘˜°Ñ¥µ•™É…µ”ô‰4ÄÔˆ°Í…µÁ±•}É…Ñ¥¼õÉ…Ñ¥¼¤4(4(4)‘•˜Ñ•ÍÑ}ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕÑ}É•©•ÑÍ}Õ¹Í½ÉÑ•‘}½É}‘ÕÁ±¥…Ñ•}Ñ¥µ•ÍÑ…µÁÌ ¤è4(€€€Õ¹Í½ÉÑ•‘}‘˜€ô}µ…­•}Ñ¥µ•™É…µ•}‘˜¡Á•É¥½‘ÌôÔ¤¹Í½ÉÑ}¥¹‘•à¡…Í•¹‘¥¹œõ…±Í”¤4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰Í½ÉÑ•Ñ¥µ•ÍÑ…µÁÌˆ¤è4(€€€€€€€ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕĞ¡Õ¹Í½ÉÑ•‘}‘˜°Ñ¥µ•™É…µ”ô‰4ÄÔˆ°Í…µÁ±•}É…Ñ¥¼ôÀ¸ÜÀ¤4(4(€€€‘ÕÁ±¥…Ñ•}‘˜€ô}µ…­•}Ñ¥µ•™É…µ•}‘˜¡Á•É¥½‘ÌôÔ¤4(€€€‘ÕÁ±¥…Ñ•}‘˜¹¥¹‘•à€ôÁ¹…Ñ•Ñ¥µ•%¹‘•à¡±¥ÍĞ¡‘ÕÁ±¥…Ñ•}‘˜¹¥¹‘•álèÑt¤€¬m‘ÕÁ±¥…Ñ•}‘˜¹¥¹‘•álÍut¤4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰Õ¹¥ÅÕ”Ñ¥µ•ÍÑ…µÁÌˆ¤è4(€€€€€€€ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕĞ¡‘ÕÁ±¥…Ñ•}‘˜°Ñ¥µ•™É…µ”ô‰4ÄÔˆ°Í…µÁ±•}É…Ñ¥¼ôÀ¸ÜÀ¤4(4(4)‘•˜Ñ•ÍÑ}ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕÑ}É•©•ÑÍ}µ¥ÍÍ¥¹}¡½±‘½ÕÑ}É½İÌ ¤è4(€€€‘˜€ô}µ…­•}Ñ¥µ•™É…µ•}‘˜¡Á•É¥½‘ÌôÌ¤4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰¹••…Ğ±•…ÍĞ€Ğˆ¤è4(€€€€€€€ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕĞ 4(€€€€€€€€€€€‘˜°4(€€€€€€€€€€€Ñ¥µ•™É…µ”ô‰4ÄÔˆ°4(€€€€€€€€€€€Í…µÁ±•}É…Ñ¥¼ôÀ¸ÜÀ°4(€€€€€€€€€€€µ¥¹}Í…µÁ±•}É½İÌôÈ°4(€€€€€€€€€€€µ¥¹}¡½±‘½ÕÑ}É½İÌôÈ°4(€€€€€€€€¤4(4(4)‘•˜Ñ•ÍÑ}ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕÑ}É•©•ÑÍ}É…Ñ¥½}Ñ¡…Ñ}É•ÅÕ¥É•Í}‰½Õ¹‘…Éå}±¥ÁÁ¥¹œ ¤è4(€€€‘˜€ô}µ…­•}Ñ¥µ•™É…µ•}‘˜¡Á•É¥½‘ÌôÔ¤4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì 4(€€€€€€€U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰…¹¹½ĞÍ…Ñ¥Í™äÑ¡”É•ÅÕ¥É•µ¥¹¥µÕ´É½İÌˆ4(€€€€¤è4(€€€€€€€ÍÁ±¥Ñ}Í…µÁ±•}¡½±‘½ÕĞ 4(€€€€€€€€€€€‘˜°4(€€€€€€€€€€€Ñ¥µ•™É…µ”ô‰4ÄÔˆ°4(€€€€€€€€€€€Í…µÁ±•}É…Ñ¥¼ôÀ¸äÀ°4(€€€€€€€€€€€µ¥¹}Í…µÁ±•}É½İÌôÈ°4(€€€€€€€€€€€µ¥¹}¡½±‘½ÕÑ}É½İÌôÈ°4(€€€€€€€€¤4(4(4)‘•˜Ñ•ÍÑ}Á±…¹}İ…±­}™½Éİ…É‘}İ¥¹‘½İÍ}ÁÉ½‘Õ•Í}¡É½¹½±½¥…±}¹½¹}½Ù•É±…ÁÁ¥¹}İ¥¹‘½İÌ ¤è4(€€€‘˜€ô}µ…­•}Ñ¥µ•™É…µ•}‘˜¡Á•É¥½‘ÌôÄÈ¤4(4(€€€İ¥¹‘½İÌ€ôÁ±…¹}İ…±­}™½Éİ…É‘}İ¥¹‘½İÌ 4(€€€€€€€‘˜°4(€€€€€€€Ñ¥µ•™É…µ”ô‰4ÄÔˆ°4(€€€€€€€ÑÉ…¥¹}İ¥¹‘½ÜôĞ°4(€€€€€€€Ñ•ÍÑ}İ¥¹‘½ÜôÈ°4(€€€€€€€ÍÑ•Á}Í¥é”ôÈ°4(€€€€¤4(4(€€€…ÍÍ•ÉĞ…±°¡¥Í¥¹ÍÑ…¹”¡İ¥¹‘½Ü°]…±­½Éİ…É‘]¥¹‘½Ü¤™½Èİ¥¹‘½Ü¥¸İ¥¹‘½İÌ¤4(€€€…ÍÍ•ÉĞl¡Ü¹ÑÉ…¥¹}ÍÑ…ÉĞ°Ü¹ÑÉ…¥¹}•¹°Ü¹Ñ•ÍÑ}ÍÑ…ÉĞ°Ü¹Ñ•ÍÑ}•¹¤™½ÈÜ¥¸İ¥¹‘½İÍt€ôôl4(€€€€€€€€ À°€Ğ°€Ğ°€Ø¤°4(€€€€€€€€ È°€Ø°€Ø°€à¤°4(€€€€€€€€ Ğ°€à°€à°€ÄÀ¤°4(€€€€€€€€ Ø°€ÄÀ°€ÄÀ°€ÄÈ¤°4(€€€t4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍlÁt¹ÑÉ…¥¹}ÍÑ…ÉÑ}Ñ¥µ”€ôô‘˜¹¥¹‘•álÁt4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍlÁt¹ÑÉ…¥¹}•¹‘}Ñ¥µ”€ôô‘˜¹¥¹‘•álÍt4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍlÁt¹Ñ•ÍÑ}ÍÑ…ÉÑ}Ñ¥µ”€ôô‘˜¹¥¹‘•álÑt4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍlÁt¹Ñ•ÍÑ}•¹‘}Ñ¥µ”€ôô‘˜¹¥¹‘•álÕt4(€€€…ÍÍ•ÉĞ…±°¡İ¥¹‘½Ü¹ÑÉ…¥¹}•¹€ôôİ¥¹‘½Ü¹Ñ•ÍÑ}ÍÑ…ÉĞ™½Èİ¥¹‘½Ü¥¸İ¥¹‘½İÌ¤4(4(4)‘•˜Ñ•ÍÑ}Á±…¹}İ…±­}™½Éİ…É‘}İ¥¹‘½İÍ}É•©•ÑÍ}¥¹ÍÕ™™¥¥•¹Ñ}É½İÍ}İ¥Ñ¡½ÕÑ}™…±±‰…¬ ¤è4(€€€‘˜€ô}µ…­•}Ñ¥µ•™É…µ•}‘˜¡Á•É¥½‘ÌôÔ¤4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰¹½Ğ•¹½Õ É½İÌˆ¤è4(€€€€€€€Á±…¹}İ…±­}™½Éİ…É‘}İ¥¹‘½İÌ 4(€€€€€€€€€€€‘˜°4(€€€€€€€€€€€Ñ¥µ•™É…µ”ô‰4ÄÔˆ°4(€€€€€€€€€€€ÑÉ…¥¹}İ¥¹‘½ÜôĞ°4(€€€€€€€€€€€Ñ•ÍÑ}İ¥¹‘½ÜôÈ°4(€€€€€€€€€€€ÍÑ•Á}Í¥é”ôÄ°4(€€€€€€€€¤4(4(4)‘•˜Ñ•ÍÑ}Á±…¹}İ…±­}™½Éİ…É‘}İ¥¹‘½İÍ}É•©•ÑÍ}¥¹Ù…±¥‘}¥¹‘•á}½É}Á…É…µ•Ñ•ÉÌ ¤è4(€€€Õ¹Í½ÉÑ•‘}‘˜€ô}µ…­•}Ñ¥µ•™É…µ•}‘˜¡Á•É¥½‘Ìôà¤¹Í½ÉÑ}¥¹‘•à¡…Í•¹‘¥¹œõ…±Í”¤4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰Í½ÉÑ•Ñ¥µ•ÍÑ…µÁÌˆ¤è4(€€€€€€€Á±…¹}İ…±­}™½Éİ…É‘}İ¥¹‘½İÌ 4(€€€€€€€€€€€Õ¹Í½ÉÑ•‘}‘˜°4(€€€€€€€€€€€Ñ¥µ•™É…µ”ô‰4ÄÔˆ°4(€€€€€€€€€€€ÑÉ…¥¹}İ¥¹‘½ÜôĞ°4(€€€€€€€€€€€Ñ•ÍÑ}İ¥¹‘½ÜôÈ°4(€€€€€€€€€€€ÍÑ•Á}Í¥é”ôÄ°4(€€€€€€€€¤4(4(€€€‘˜€ô}µ…­•}Ñ¥µ•™É…µ•}‘˜¡Á•É¥½‘Ìôà¤4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡Y…±Õ•ÉÉ½È°µ…Ñ ô‰µÕÍĞ‰”Á½Í¥Ñ¥Ù”ˆ¤è4(€€€€€€€Á±…¹}İ…±­}™½Éİ…É‘}İ¥¹‘½İÌ 4(€€€€€€€€€€€‘˜°4(€€€€€€€€€€€Ñ¥µ•™É…µ”ô‰4ÄÔˆ°4(€€€€€€€€€€€ÑÉ…¥¹}İ¥¹‘½ÜôÀ°4(€€€€€€€€€€€Ñ•ÍÑ}İ¥¹‘½ÜôÈ°4(€€€€€€€€€€€ÍÑ•Á}Í¥é”ôÄ°4(€€€€€€€€¤4(4(4)‘•˜Ñ•ÍÑ}Á±…¹}İ…±­}™½Éİ…É‘}İ¥¹‘½İÍ}µ…Ñ¡•Í}É•…±} Ñ}‘…Ñ…Í•Ñ}‰½Õ¹‘…É¥•Ì ¤è4(€€€‘˜€ô±½…‘}µĞÕ}ÍØ¡I==P€¼€‰aUUM} Ğ¹ÍØˆ¤4(4(€€€İ¥¹‘½İÌ€ôÁ±…¹}İ…±­}™½Éİ…É‘}İ¥¹‘½İÌ 4(€€€€€€€‘˜°4(€€€€€€€Ñ¥µ•™É…µ”ô‰ Ğˆ°4(€€€€€€€ÑÉ…¥¹}İ¥¹‘½ÜôÜÔÀ°4(€€€€€€€Ñ•ÍÑ}İ¥¹‘½ÜôÄÈÔ°4(€€€€€€€ÍÑ•Á}Í¥é”ôØÀ°4(€€€€€€€µ¥¹}İ¥¹‘½İÌôÈ°4(€€€€¤4(4(€€€…ÍÍ•ÉĞ±•¸¡İ¥¹‘½İÌ¤€ôô€ÜÔ4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍlÁt¹ÑÉ…¥¹}ÍÑ…ÉÑ}Ñ¥µ”€ôôÁ¹Q¥µ•ÍÑ…µÀ ˆÈÀÈÌ´ÀÄ´ÀÌ€ÀÀèÀÀèÀÀˆ¤4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍlÁt¹ÑÉ…¥¹}•¹‘}Ñ¥µ”€ôôÁ¹Q¥µ•ÍÑ…µÀ ˆÈÀÈÌ´ÀØ´ÈÜ€ÈÀèÀÀèÀÀˆ¤4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍlÁt¹Ñ•ÍÑ}ÍÑ…ÉÑ}Ñ¥µ”€ôôÁ¹Q¥µ•ÍÑ…µÀ ˆÈÀÈÌ´ÀØ´Èà€ÀÀèÀÀèÀÀˆ¤4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍlÁt¹Ñ•ÍÑ}•¹‘}Ñ¥µ”€ôôÁ¹Q¥µ•ÍÑ…µÀ ˆÈÀÈÌ´ÀÜ´ÈØ€ÄØèÀÀèÀÀˆ¤4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍl´Åt¹ÑÉ…¥¹}ÍÑ…ÉĞ€ôô€ĞĞĞÀ4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍl´Åt¹Ñ•ÍÑ}•¹€ôô€ÔÌÄÔ4(€€€…ÍÍ•ÉĞİ¥¹‘½İÍl´Åt¹Ñ•ÍÑ}•¹‘}Ñ¥µ”€ôôÁ¹Q¥µ•ÍÑ…µÀ ˆÈÀÈØ´ÀØ´ÄÄ€ÄÈèÀÀèÀÀˆ¤4(4(4)‘•˜Ñ•ÍÑ}É•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ñ}¥¹½É•Í}ÉÕ¹Ñ¥µ•}™½Éİ…É‘}µ•Ñ…‘…Ñ„ ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}4ÄÕ|ÀÀÄˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰4ÄÔˆ°4(€€€€€€€€‰¥¹‘¥…Ñ½ÉÌˆèl‰•µ„ˆ°€‰…ÑÈ‰t°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰•µ…}Í±½Üˆè€ÈØ°€‰É¥Í­}Á•É•¹Ğˆè€À¸Õô°4(€€€€€€€€‰Í¥é¥¹œˆèì‰µ½‘”ˆè€‰É¥Í­}Á•É•¹Ğˆ°€‰É¥Í­}Á•É•¹Ğˆè€À¸Õô°4(€€€ô4(€€€™½Éİ…É‘}½¹™¥œ€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰Í…µÁ±•}ÍÑÉ…Ñ•å}¥ˆè€‰Í…µÁ±•}4ÄÕ|ÀÀÄˆ°4(€€€€€€€€‰Í…µÁ±•}½¹™¥}Á…Ñ ˆèÍÑÈ¡I==P€¼€‰ÑµÀˆ€¼€‰½¹™¥œ¹Á­°ˆ¤°4(€€€€€€€€‰Í…µÁ±•}É…¹¬ˆè€Ä°4(€€€€€€€€‰A¡…Í”ˆè€‰aQ}==M}ˆ°4(€€€ô4(4(€€€…ÍÍ•ÉĞÉ•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ¡Í…µÁ±•}½¹™¥œ¤€ôôÉ•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ 4(€€€€€€€™½Éİ…É‘}½¹™¥œ4(€€€€¤4(€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä¡Í…µÁ±•}½¹™¥œ°™½Éİ…É‘}½¹™¥œ¤4(4(4)‘•˜Ñ•ÍÑ}…ÍÍ•ÉÑ}•áÁ•Ñ•‘}É•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ñ}…•ÁÑÍ}µ…Ñ¡¥¹}¡…Í  ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}µ…Ñ¡|ÀÀÄˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰4ÄÔˆ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰•µ…}Í±½Üˆè€ÈÙô°4(€€€ô4(€€€•áÁ•Ñ•€ôÉ•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ¡Í…µÁ±•}½¹™¥œ¤4(4(€€€…ÍÍ•ÉĞ€ 4(€€€€€€€…ÍÍ•ÉÑ}•áÁ•Ñ•‘}É•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ¡•áÁ•Ñ•°Í…µÁ±•}½¹™¥œ¤€ôô•áÁ•Ñ•4(€€€€¤4(4(4)‘•˜Ñ•ÍÑ}…ÍÍ•ÉÑ}•áÁ•Ñ•‘}É•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ñ}É•©•ÑÍ}µ¥ÍÍ¥¹}¡…Í  ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}µ¥ÍÍ¥¹}™Àˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰ Äˆ°4(€€€€€€€€‰Á…É…µÌˆèì‰ÉÈˆè€Ä¸Õô°4(€€€ô4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰É•ÅÕ¥É•ÌÑ¡”Í…µÁ±”µÍ•±•Ñ•ˆ¤è4(€€€€€€€…ÍÍ•ÉÑ}•áÁ•Ñ•‘}É•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ ˆˆ°Í…µÁ±•}½¹™¥œ¤4(4(4)‘•˜Ñ•ÍÑ}…ÍÍ•ÉÑ}•áÁ•Ñ•‘}É•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ñ}É•©•ÑÍ}µÕÑ…Ñ•‘}½¹™¥œ ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}™Á|ÀÀÈˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰4ÌÀˆ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰•µ…}Í±½Üˆè€ÈØ°€‰É¥Í­}Á•É•¹Ğˆè€À¸Õô°4(€€€ô4(€€€µÕÑ…Ñ•€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÀ°€‰•µ…}Í±½Üˆè€ÈØ°€‰É¥Í­}Á•É•¹Ğˆè€À¸Õô°4(€€€ô4(€€€•áÁ•Ñ•€ôÉ•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ¡Í…µÁ±•}½¹™¥œ¤4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰™¥¹•ÉÁÉ¥¹Ğµ¥Íµ…Ñ ˆ¤è4(€€€€€€€…ÍÍ•ÉÑ}•áÁ•Ñ•‘}É•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ¡•áÁ•Ñ•°µÕÑ…Ñ•¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}É•©•ÑÍ}É•Í•…É¡}Á…É…µ•Ñ•É}¡…¹•Ì ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•} Å|ÀÀÈˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰ Äˆ°4(€€€€€€€€‰¥¹‘¥…Ñ½ÉÌˆèl‰•µ„ˆ°€‰…ÑÈ‰t°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰•µ…}Í±½Üˆè€ÈØ°€‰É¥Í­}Á•É•¹Ğˆè€À¸Õô°4(€€€€€€€€‰•á¥ÑÌˆèì‰ÉÈˆè€Ä¸Áô°4(€€€ô4(€€€™½Éİ…É‘}½¹™¥œ€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÀ°€‰•µ…}Í±½Üˆè€ÈØ°€‰É¥Í­}Á•É•¹Ğˆè€À¸Õô°4(€€€€€€€€‰Í…µÁ±•}ÍÑÉ…Ñ•å}¥ˆè€‰Í…µÁ±•} Å|ÀÀÈˆ°4(€€€ô4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰á…Ğ™½Éİ…É½¹™¥œµ¥Íµ…Ñ ˆ¤è4(€€€€€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä¡Í…µÁ±•}½¹™¥œ°™½Éİ…É‘}½¹™¥œ¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}‘½•Í}¹½Ñ}¥¹½É•}¹•ÍÑ•‘}É•Í•…É¡}Á…É…µÌ ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}4ÌÁ|ÀÀÌˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰4ÌÀˆ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰İ¥¹‘½İ}¥ˆè€Õô°4(€€€€€€€€‰™¥±Ñ•ÉÌˆèì‰Í•ÍÍ¥½¸ˆèì‰İ¥¹‘½İ}¥ˆè€‰±½¹‘½¹}½Á•¸‰õô°4(€€€ô4(€€€™½Éİ…É‘}½¹™¥œ€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰İ¥¹‘½İ}¥ˆè€Ùô°4(€€€ô4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰á…Ğ™½Éİ…É½¹™¥œµ¥Íµ…Ñ ˆ¤è4(€€€€€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä¡Í…µÁ±•}½¹™¥œ°™½Éİ…É‘}½¹™¥œ¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}ÑÉ•…ÑÍ}Ñ½Á}±•Ù•±}İ¥¹‘½İ}¥‘}…Í}É•Í•…É¡}‘…Ñ„ ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}4ÌÁ}İ¥¹‘½Üˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰4ÌÀˆ°4(€€€€€€€€‰İ¥¹‘½İ}¥ˆè€Ô°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÉô°4(€€€ô4(€€€™½Éİ…É‘}½¹™¥œ€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰İ¥¹‘½İ}¥ˆè€Ø°4(€€€ô4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰á…Ğ™½Éİ…É½¹™¥œµ¥Íµ…Ñ ˆ¤è4(€€€€€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä¡Í…µÁ±•}½¹™¥œ°™½Éİ…É‘}½¹™¥œ¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}…±±½İÍ}•áÁ±¥¥Ñ}¹•ÍÑ•‘}µ•Ñ…‘…Ñ…}•á•µÁÑ¥½¹Ì ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}4ÌÁ|ÀÀĞˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰4ÌÀˆ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰İ¥¹‘½İ}¥ˆè€Õô°4(€€€€€€€€‰ÉÕ¹Ñ¥µ•}µ•Ñ…‘…Ñ„ˆèì‰±½…‘•‘}İ¥¹‘½İ}¥ˆè€‰±½¹‘½¹}½Á•¸‰ô°4(€€€ô4(€€€™½Éİ…É‘}½¹™¥œ€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰İ¥¹‘½İ}¥ˆè€Õô°4(€€€€€€€€‰ÉÕ¹Ñ¥µ•}µ•Ñ…‘…Ñ„ˆèì‰±½…‘•‘}İ¥¹‘½İ}¥ˆè€‰¹•İ}ÉÕ¹Ñ¥µ•}İ¥¹‘½Ü‰ô°4(€€€ô4(4(€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä 4(€€€€€€€Í…µÁ±•}½¹™¥œ°4(€€€€€€€™½Éİ…É‘}½¹™¥œ°4(€€€€€€€¥¹½É•‘}Á…Ñ¡Ìõì ‰ÉÕ¹Ñ¥µ•}µ•Ñ…‘…Ñ„ˆ°€‰±½…‘•‘}İ¥¹‘½İ}¥ˆ¥ô°4(€€€€¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}É•©•ÑÍ}ÍÑÉÕÑÕÉ•‘}µ•Ñ…‘…Ñ…}•á•µÁÑ¥½¹Ì ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}4ÌÁ|ÀÀĞˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰4ÌÀˆ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰İ¥¹‘½İ}¥ˆè€Õô°4(€€€€€€€€‰ÉÕ¹Ñ¥µ•}µ•Ñ…‘…Ñ„ˆèì4(€€€€€€€€€€€€‰±½…‘•‘}İ¥¹‘½Üˆèì‰¥ˆè€‰±½¹‘½¹}½Á•¸ˆ°€‰•µ…}™…ÍĞˆè€ÄÉô°4(€€€€€€€ô°4(€€€ô4(€€€™½Éİ…É‘}½¹™¥œ€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰ÉÕ¹Ñ¥µ•}µ•Ñ…‘…Ñ„ˆèì4(€€€€€€€€€€€€‰±½…‘•‘}İ¥¹‘½Üˆèì‰¥ˆè€‰¹•İ}ÉÕ¹Ñ¥µ•}İ¥¹‘½Üˆ°€‰•µ…}™…ÍĞˆè€ÄÁô°4(€€€€€€€ô°4(€€€ô4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì 4(€€€€€€€U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰µÕÍĞÁ½¥¹ĞÑ¼Í…±…È±•…˜Ù…±Õ•Ìˆ4(€€€€¤è4(€€€€€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä 4(€€€€€€€€€€€Í…µÁ±•}½¹™¥œ°4(€€€€€€€€€€€™½Éİ…É‘}½¹™¥œ°4(€€€€€€€€€€€¥¹½É•‘}Á…Ñ¡Ìõì ‰ÉÕ¹Ñ¥µ•}µ•Ñ…‘…Ñ„ˆ°€‰±½…‘•‘}İ¥¹‘½Üˆ¥ô°4(€€€€€€€€¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}É•©•ÑÍ}‰É½…‘}µ•Ñ…‘…Ñ…}É½½Ñ}•á•µÁÑ¥½¹Ì ¤è4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰Ñ…É•ĞÍÁ•¥™¥Œµ•Ñ…‘…Ñ„™¥•±‘Ìˆ¤è4(€€€€€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä 4(€€€€€€€€€€€ì‰ÉÕ¹Ñ¥µ•}µ•Ñ…‘…Ñ„ˆèì‰±½…‘•‘}İ¥¹‘½İ}¥ˆè€‰„‰õô°4(€€€€€€€€€€€ì‰ÉÕ¹Ñ¥µ•}µ•Ñ…‘…Ñ„ˆèì‰±½…‘•‘}İ¥¹‘½İ}¥ˆè€‰ˆ‰õô°4(€€€€€€€€€€€¥¹½É•‘}Á…Ñ¡Ìõì ‰ÉÕ¹Ñ¥µ•}µ•Ñ…‘…Ñ„ˆ°¥ô°4(€€€€€€€€¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}É•©•ÑÍ}¹•ÍÑ•‘}•á•µÁÑ¥½¹Í}™½É}É•Í•…É¡}Á…Ñ¡Ì ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}4ÌÁ|ÀÀĞˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰4ÌÀˆ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÈ°€‰İ¥¹‘½İ}¥ˆè€Õô°4(€€€ô4(€€€™½Éİ…É‘}½¹™¥œ€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÀ°€‰İ¥¹‘½İ}¥ˆè€Õô°4(€€€ô4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì 4(€€€€€€€U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰¹•ÍÑ•¥¹½É•Ì…É”É•ÍÑÉ¥Ñ•Ñ¼…Õ‘¥Ñ•ÉÕ¹Ñ¥µ”µ•Ñ…‘…Ñ„É½½ÑÌˆ4(€€€€¤è4(€€€€€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä 4(€€€€€€€€€€€Í…µÁ±•}½¹™¥œ°4(€€€€€€€€€€€™½Éİ…É‘}½¹™¥œ°4(€€€€€€€€€€€¥¹½É•‘}Á…Ñ¡Ìõì ‰Á…É…µÌˆ°€‰•µ…}™…ÍĞˆ¥ô°4(€€€€€€€€¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}É•©•ÑÍ}Ñ½Á}±•Ù•±}É•Í•…É¡}­•å}•á•µÁÑ¥½¹Ì ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}4ÌÁ|ÀÀĞˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰4ÌÀˆ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÉô°4(€€€ô4(€€€™½Éİ…É‘}½¹™¥œ€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÁô°4(€€€ô4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì 4(€€€€€€€U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰…Õ‘¥Ñ•Ñ½Àµ±•Ù•°ÉÕ¹Ñ¥µ”µ•Ñ…‘…Ñ„ˆ4(€€€€¤è4(€€€€€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä 4(€€€€€€€€€€€Í…µÁ±•}½¹™¥œ°4(€€€€€€€€€€€™½Éİ…É‘}½¹™¥œ°4(€€€€€€€€€€€¥¹½É•‘}­•åÌõì‰Á…É…µÌ‰ô°4(€€€€€€€€¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}¥¹½É•Í}É•½É‘•‘}™¥¹•ÉÁÉ¥¹Ñ}µ•Ñ…‘…Ñ„ ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì‰¥ˆè€‰Í…µÁ±•}4ÄÕ|ÀÀÔˆ°€‰Ñ¥µ•™É…µ”ˆè€‰4ÄÔˆ°€‰Á…É…µÌˆèì‰•µ…}™…ÍĞˆè€ÄÉõô4(€€€™½Éİ…É‘}½¹™¥œ€ôì4(€€€€€€€€¨©Í…µÁ±•}½¹™¥œ°4(€€€€€€€€‰Í…µÁ±•}ÍÑÉ…Ñ•å}¥ˆè€‰Í…µÁ±•}4ÄÕ|ÀÀÔˆ°4(€€€€€€€€‰Í…µÁ±•}½¹™¥}™¥¹•ÉÁÉ¥¹Ğˆè€‰Í¡„ÈÔØéÁ±…•¡½±‘•Èˆ°4(€€€ô4(4(€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä¡Í…µÁ±•}½¹™¥œ°™½Éİ…É‘}½¹™¥œ¤4(4(4)‘•˜Ñ•ÍÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñå}É•©•ÑÍ}¹½¹}™¥¹¥Ñ•}Ù…±Õ•Ì ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì‰¥ˆè€‰Í…µÁ±•} Ñ|ÀÀÌˆ°€‰Ñ¥µ•™É…µ”ˆè€‰ Ğˆ°€‰Á…É…µÌˆèì‰ÉÈˆè€Ä¸Áõô4(€€€™½Éİ…É‘}½¹™¥œ€ôì‰¥ˆè€‰Í…µÁ±•} Ñ|ÀÀÌˆ°€‰Ñ¥µ•™É…µ”ˆè€‰ Ğˆ°€‰Á…É…µÌˆèì‰ÉÈˆè™±½…Ğ ‰¹…¸ˆ¥õô4(4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰¹½¸µ™¥¹¥Ñ”ˆ¤è4(€€€€€€€É•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ¡™½Éİ…É‘}½¹™¥œ¤4(€€€İ¥Ñ ÁåÑ•ÍĞ¹É…¥Í•Ì¡U¹Í…™•Ù…±Õ…Ñ¥½¹ÉÉ½È°µ…Ñ ô‰¹½¸µ™¥¹¥Ñ”ˆ¤è4(€€€€€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä¡Í…µÁ±•}½¹™¥œ°™½Éİ…É‘}½¹™¥œ¤4(4(4)‘•˜Ñ•ÍÑ}É•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ñ}¹½Éµ…±¥é•Í}¹ÕµÁå}Í…±…É}Ù…±Õ•Ì ¤è4(€€€Í…µÁ±•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}¹Á|ÀÀÄˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰ Äˆ°4(€€€€€€€€‰Á…É…µÌˆèì4(€€€€€€€€€€€€‰•µ…}™…ÍĞˆè¹À¹¥¹ĞØĞ ÄÈ¤°4(€€€€€€€€€€€€‰É¥Í­}Á•É•¹Ğˆè¹À¹™±½…ĞØĞ À¸Ô¤°4(€€€€€€€€€€€€‰•¹…‰±•ˆè¹À¹‰½½±|¡QÉÕ”¤°4(€€€€€€€ô°4(€€€ô4(€€€¹…Ñ¥Ù•}½¹™¥œ€ôì4(€€€€€€€€‰¥ˆè€‰Í…µÁ±•}¹Á|ÀÀÄˆ°4(€€€€€€€€‰Ñ¥µ•™É…µ”ˆè€‰ Äˆ°4(€€€€€€€€‰Á…É…µÌˆèì4(€€€€€€€€€€€€‰•µ…}™…ÍĞˆè€ÄÈ°4(€€€€€€€€€€€€‰É¥Í­}Á•É•¹Ğˆè€À¸Ô°4(€€€€€€€€€€€€‰•¹…‰±•ˆèQÉÕ”°4(€€€€€€€ô°4(€€€ô4(4(€€€…ÍÍ•ÉĞÉ•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ¡Í…µÁ±•}½¹™¥œ¤€ôôÉ•Í•…É¡}½¹™¥}™¥¹•ÉÁÉ¥¹Ğ 4(€€€€€€€¹…Ñ¥Ù•}½¹™¥œ4(€€€€¤4(€€€…ÍÍ•ÉÑ}•á…Ñ}™½Éİ…É‘}½¹™¥}¥‘•¹Ñ¥Ñä¡Í…µÁ±•}½¹™¥œ°¹…Ñ¥Ù•}½¹™¥œ¤4(
+def test_active_notebook_routes_position_close_through_canonical_helper():
+    source = _notebook_cell_source(18)
+
+    assert "close_position as _close_position_safe" in source
+    assert "return _close_position_safe(" in source
+    assert source.count("def _close_open_position(") == 1
+    assert "trade_pnl = gross - open_pos[\"entry_commission\"]" not in source
+
+
+def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
+    source = _notebook_cell_source(18)
+    assert "entry_atr = float(atr_values[signal_i])" in source
+    assert "atr_value=entry_atr" in source
+    assert "def _calculate_lot(" in source
+
+    run_backtest = _active_notebook_run_backtest()
+    index = pd.date_range("2025-01-01", periods=6, freq="15min")
+    original = pd.DataFrame(
+        {
+            "open": [100.0] * 6,
+            "high": [101.0, 101.5, 102.0, 100.2, 100.2, 100.2],
+            "low": [99.0, 99.5, 100.0, 99.8, 99.8, 99.8],
+            "close": [100.0, 101.0, 101.0, 100.0, 100.0, 100.0],
+            "volume": [1.0] * 6,
+        },
+        index=index,
+    )
+    mutated = original.copy()
+    mutated.loc[index[3], ["high", "low", "close"]] = [150.0, 50.0, 130.0]
+
+    long_signal = lambda frame: pd.Series(
+        [False, False, True, False, False, False], index=frame.index
+    )
+    short_signal = lambda frame: pd.Series(False, index=frame.index)
+    config = {
+        "id": "closed_bar_entry_inputs",
+        "entry": {
+            "long_condition": long_signal,
+            "short_condition": short_signal,
+        },
+        "params": {"ATR": {"period": 2}},
+        "exit": {
+            "atr_period": 2,
+            "atr_multiplier": 1.0,
+            "sl_type": "atr",
+            "tp_type": "fib",
+            "fib_levels": [1.618],
+        },
+        "sizing": {"sizing_method": "risk_percent", "risk_percent": 1.0},
+        "friction": {},
+    }
+
+    original_trades, _, _ = run_backtest(
+        config, original, execution_mode="next_bar_open"
+    )
+    mutated_trades, _, _ = run_backtest(
+        config, mutated, execution_mode="next_bar_open"
+    )
+
+    assert original_trades and mutated_trades
+    original_entry = original_trades[0]
+    mutated_entry = mutated_trades[0]
+    assert original_entry["signal_time"] == mutated_entry["signal_time"] == index[2]
+    assert original_entry["entry_time"] == mutated_entry["entry_time"] == index[3]
+    assert original_entry["entry_raw"] == mutated_entry["entry_raw"] == 100.0
+    assert original_entry["stop_loss"] == pytest.approx(mutated_entry["stop_loss"])
+    assert original_entry["lot"] == pytest.approx(mutated_entry["lot"])
+    assert original_entry["take_profit"] == pytest.approx(
+        mutated_entry["take_profit"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("direction", "gap_open", "gap_high", "gap_low"),
+    [
+        ("long", 98.0, 100.0, 97.0),
+        ("short", 102.0, 103.0, 100.0),
+    ],
+)
+def test_active_notebook_close_bar_gap_exits_at_actual_bar_open(
+    direction, gap_open, gap_high, gap_low
+):
+    run_backtest = _active_notebook_run_backtest()
+    index = pd.date_range("2025-01-01", periods=6, freq="15min")
+    frame = pd.DataFrame(
+        {
+            "open": [100.0, 100.0, 100.0, gap_open, 100.0, 100.0],
+            "high": [101.0, 101.0, 101.0, gap_high, 101.0, 101.0],
+            "low": [99.0, 99.0, 99.0, gap_low, 99.0, 99.0],
+            "close": [100.0] * 6,
+            "volume": [1.0] * 6,
+        },
+        index=index,
+    )
+    active_signal = lambda data: pd.Series(
+        [False, False, True, False, False, False], index=data.index
+    )
+    inactive_signal = lambda data: pd.Series(False, index=data.index)
+    config = {
+        "id": f"close_bar_{direction}_gap",
+        "entry": {
+            "long_condition": active_signal if direction == "long" else inactive_signal,
+            "short_condition": active_signal if direction == "short" else inactive_signal,
+        },
+        "params": {"ATR": {"period": 2}},
+        "exit": {
+            "atr_period": 2,
+            "atr_multiplier": 1.0,
+            "sl_type": "atr",
+            "tp_type": "rr",
+            "risk_reward_ratio": 2.0,
+        },
+        "sizing": {"sizing_method": "fixed", "fixed_lot": 0.1},
+        "friction": {},
+    }
+
+    trades, _, _ = run_backtest(
+        config, frame, execution_mode="same_bar_close"
+    )
+
+    assert len(trades) == 1
+    assert trades[0]["direction"] == direction
+    assert trades[0]["exit_time"] == index[3]
+    assert trades[0]["exit_raw"] == pytest.approx(gap_open)
+    assert trades[0]["reason"] == "SL"
+
+
+def test_active_notebook_rejects_unknown_execution_mode():
+    run_backtest = _active_notebook_run_backtest()
+    frame = _make_timeframe_df(periods=5)
+    config = {
+        "entry": {
+            "long_condition": lambda data: pd.Series(False, index=data.index),
+            "short_condition": lambda data: pd.Series(False, index=data.index),
+        },
+        "params": {},
+    }
+
+    with pytest.raises(ValueError, match="execution_mode must be one of"):
+        run_backtest(config, frame, execution_mode="mystery")
+
+
+def test_active_notebook_inspect_path_requires_clean_export():
+    inspect_cell = _notebook_cell_source(19)
+
+    assert "Strict CLEAN strategy CSV not found" in inspect_cell
+    assert 'source_type = "CLEAN"' in inspect_cell
+    assert 'source_type = "SOFT"' not in inspect_cell
+    assert 'source_type = "FALLBACK"' not in inspect_cell
+    assert "elif os.path.exists(soft_csv)" not in inspect_cell
+    assert "glob.glob(os.path.join(OUTPUT_ROOT, f\"**/*{RUN_ID}*.csv\"), recursive=True)" not in inspect_cell
+
+
+def test_active_notebook_swap_path_uses_crossed_rollover_accounting():
+    source = _notebook_code_source()
+
+    assert (
+        "book_crossed_rollover_swaps as _book_crossed_rollover_swaps_safe"
+        in source
+    )
+    assert "_book_crossed_rollover_swaps(" in source
+    assert "return _book_crossed_rollover_swaps_safe(" in source
+    assert '"last_swap_check_time"' in source
+    assert '"swap_cash": 0.0' in source
+    assert "days_held = float(bars_held) / bars_per_day" not in source
+
+
+def test_active_notebook_routes_broker_spec_through_verified_profile():
+    source = _notebook_code_source()
+
+    assert "from xauusd_ea.baseline import (" in source
+    assert "merge_runtime_broker_overrides" in source
+    assert "load_broker_profile(" in source
+    assert "assert_runtime_broker_spec_matches_profile(" in source
+    assert "XAUUSD_SPEC = assert_runtime_broker_spec_matches_profile({" in source
+    assert '"symbol": "XAUUSD"' not in source
+    assert '"contract_size": 100.0' not in source
+    assert '"min_lot": 0.01' not in source
+    assert '"max_lot": 50.0' not in source
+    assert '"spread_points": 150' not in source
+    assert '"commission_per_lot_round_turn": 7.0' not in source
+
+
+def test_active_notebook_rejects_raw_broker_spec_dict_merges():
+    source = _notebook_code_source()
+
+    assert "{**XAUUSD_SPEC, **friction}" not in source
+    assert '{**XAUUSD_SPEC, **es["sizing"]}' not in source
+    assert '{**XAUUSD_SPEC, **(cfg2.get("friction", {}) or {})}' not in source
+    assert '{**XAUUSD_SPEC, **(cfg2.get("sizing", {}) or {})}' not in source
+    assert 'context="generate_strategy_configs.friction"' in source
+    assert 'context="generate_strategy_configs.sizing"' in source
+    assert 'context="_with_timeframe_friction.friction"' in source
+    assert 'context="_with_timeframe_friction.sizing"' in source
+
+
+def test_active_notebook_friction_helpers_do_not_fall_back_to_legacy_xauusd_cost_defaults():
+    source = _notebook_code_source()
+
+    assert "require_runtime_broker_spec" in source
+    assert "merge_runtime_broker_overrides" in source
+    assert 'runtime_spec = require_runtime_broker_spec(globals().get("XAUUSD_SPEC"))' in source
+    assert 'runtime_spec = require_runtime_broker_spec(spec)' in source
+    assert "commission_per_lot = config.get('commission_per_lot')" not in source
+    assert "config.get('commission_per_lot', 7.0)" not in source
+    assert "config.get('spread_points', 1.5)" not in source
+    assert "config.get('swap_per_lot', -1.0)" not in source
+    assert 'friction.get("commission_per_lot", 0.0)' not in source
+    assert 'friction.get("spread_points", 0.0)' not in source
+    assert 'friction.get("swap_per_lot", 0.0)' not in source
+    assert 'cfg = merge_runtime_broker_overrides(runtime_spec, config, context=\'apply_commission\')' in source
+    assert "context='apply_spread'" in source
+    assert "allow_supported_spread_override=True" in source
+    assert "context='apply_swap_cost'" in source
+    assert 'point = runtime_spec[\'point\']' in source
+    assert 'cost_value_mode = str(runtime_spec[\'cost_value_mode\']).lower()' in source
+    assert "from xauusd_ea.execution import apply_execution_price" in source
+    assert "return _apply_execution_price_safe(price, side, friction, spec, timestamp=timestamp)" in source
+    assert "runtime_spec['commission_per_lot_round_turn']" in source
+    assert "runtime_spec['spread_points']" in source
+    assert "book_crossed_rollover_swaps as _book_crossed_rollover_swaps_safe" in source
+    assert 'globals().get("XAUUSD_SPEC", {})' not in source
+    assert "point = config.get('point', runtime_spec['point'])" not in source
+    assert "cost_value_mode = str(config.get('cost_value_mode', runtime_spec['cost_value_mode'])).lower()" not in source
+    assert "daily_swap = config.get('swap_per_lot', runtime_spec['swap_per_lot'])" not in source
+
+
+def test_active_notebook_short_cost_paths_use_directional_swap_and_active_spec():
+    source = _notebook_code_source()
+
+    assert "def _swap_cash(" not in source
+    assert "crossed_rollover_swap_cash(" not in source
+    assert "return _book_crossed_rollover_swaps_safe(" in source
+    assert "_book_crossed_rollover_swaps(cash, open_pos, ts, friction, broker_spec)" in source
+    assert "_close_position_safe(open_pos, exit_raw" in source
+    assert 'swap_cash = float(open_pos.get("swap_cash", 0.0))' not in source
+    assert "_commission_per_side(lot, friction, broker_spec)" in source
+    assert '_swap_cash(open_pos["lot"], bars_held, friction)' not in source
+    assert '_commission_per_side(open_pos["lot"], friction)' not in source
+
+
+def test_active_notebook_lot_sizing_uses_verified_micro_defaults_and_no_round_up():
+    source = _notebook_code_source()
+
+    assert (
+        "from xauusd_ea.sizing import calculate_position_size as "
+        "_calculate_position_size_safe" in source
+    )
+    assert "return _calculate_position_size_safe(" in source
+    assert "_calculate_lot(cash, entry_exec, stop_loss, sizing_cfg, atr_value=entry_atr, spec=broker_spec)" in source
+    assert 'cfg["atr"] = atr_value' in source
+    assert "runtime_spec=runtime_spec" in source
+    assert "risk_amount = (risk_percent / 100.0) * capital" not in source
+    assert "steps = int((lot_size - min_lot) / lot_step + 1e-12)" not in source
+    assert 'round(round(lot / step) * step, precision)' not in source
+    assert 'lot_size = max(min_lot, min(lot_size, max_lot))' not in source
+    assert 'contract_size = config.get("contract_size", runtime_spec["contract_size"])' not in source
+    assert 'min_lot = config.get("min_lot", runtime_spec["min_lot"])' not in source
+    assert 'contract_size = kwargs.get("contract_size", runtime_spec["contract_size"])' not in source
+    assert 'min_lot = kwargs.get("min_lot", runtime_spec["min_lot"])' not in source
+    assert 'cfg = {**runtime_spec, **(sizing_cfg or {})}' not in source
+    assert 'lot_raw = cfg.get("fixed_lot", cfg.get("base_lot_size", runtime_spec["min_lot"]))' not in source
+
+
+def test_active_notebook_has_no_stale_legacy_outputs_or_full_sample_fallback_text():
+    notebook_text = NOTEBOOK.read_text(encoding="utf-8")
+
+    assert "falling back to full-sample evaluation" not in notebook_text
+    assert "'symbol': 'XAUUSD'" not in notebook_text
+    assert "'contract_size': 100.0" not in notebook_text
+    assert "'min_lot': 0.01" not in notebook_text
+    assert "'max_lot': 50.0" not in notebook_text
+    assert "'spread_points': 1.5" not in notebook_text
+    assert "'spread_points': 150" not in notebook_text
+    assert "'commission_per_lot': 7.0" not in notebook_text
+    assert "'commission_per_lot_round_turn': 7.0" not in notebook_text
+    assert "'swap_per_lot': -1.0" not in notebook_text
+
+
+@pytest.mark.parametrize(
+    ("timeframe", "filename", "expected_split", "expected_sample_end", "expected_holdout_start"),
+    [
+        ("M15", "XAUUSD_M15.csv", 57246, "2025-06-05 06:45:00", "2025-06-05 07:00:00"),
+        ("M30", "XAUUSD_M30.csv", 28625, "2025-06-05 06:30:00", "2025-06-05 07:00:00"),
+        ("H1", "XAUUSD_H1.csv", 14321, "2025-06-05 05:00:00", "2025-06-05 06:00:00"),
+        ("H4", "XAUUSD_H4.csv", 3746, "2025-06-04 20:00:00", "2025-06-05 00:00:00"),
+    ],
+)
+def test_split_sample_holdout_matches_real_dataset_boundaries(
+    timeframe: str,
+    filename: str,
+    expected_split: int,
+    expected_sample_end: str,
+    expected_holdout_start: str,
+):
+    df = load_mt5_csv(ROOT / filename)
+
+    split = split_sample_holdout(df, timeframe=timeframe, sample_ratio=0.70)
+
+    assert split.split_index == expected_split
+    assert split.sample_start == df.index[0]
+    assert split.sample_end == pd.Timestamp(expected_sample_end)
+    assert split.holdout_start == pd.Timestamp(expected_holdout_start)
+    assert split.holdout_end == df.index[-1]
+    assert len(split.sample) + len(split.holdout) == len(df)
+
+
+@pytest.mark.parametrize("ratio", [0.49, 0.91])
+def test_split_sample_holdout_rejects_ratio_outside_audited_bounds(ratio: float):
+    df = _make_timeframe_df(periods=10)
+
+    with pytest.raises(UnsafeEvaluationError, match="audited range"):
+        split_sample_holdout(df, timeframe="M15", sample_ratio=ratio)
+
+
+def test_split_sample_holdout_rejects_unsorted_or_duplicate_timestamps():
+    unsorted_df = _make_timeframe_df(periods=5).sort_index(ascending=False)
+    with pytest.raises(UnsafeEvaluationError, match="sorted timestamps"):
+        split_sample_holdout(unsorted_df, timeframe="M15", sample_ratio=0.70)
+
+    duplicate_df = _make_timeframe_df(periods=5)
+    duplicate_df.index = pd.DatetimeIndex(list(duplicate_df.index[:4]) + [duplicate_df.index[3]])
+    with pytest.raises(UnsafeEvaluationError, match="unique timestamps"):
+        split_sample_holdout(duplicate_df, timeframe="M15", sample_ratio=0.70)
+
+
+def test_split_sample_holdout_rejects_missing_holdout_rows():
+    df = _make_timeframe_df(periods=3)
+
+    with pytest.raises(UnsafeEvaluationError, match="need at least 4"):
+        split_sample_holdout(
+            df,
+            timeframe="M15",
+            sample_ratio=0.70,
+            min_sample_rows=2,
+            min_holdout_rows=2,
+        )
+
+
+def test_split_sample_holdout_rejects_ratio_that_requires_boundary_clipping():
+    df = _make_timeframe_df(periods=5)
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="cannot satisfy the required minimum rows"
+    ):
+        split_sample_holdout(
+            df,
+            timeframe="M15",
+            sample_ratio=0.90,
+            min_sample_rows=2,
+            min_holdout_rows=2,
+        )
+
+
+def test_plan_walk_forward_windows_produces_chronological_non_overlapping_windows():
+    df = _make_timeframe_df(periods=12)
+
+    windows = plan_walk_forward_windows(
+        df,
+        timeframe="M15",
+        train_window=4,
+        test_window=2,
+        step_size=2,
+    )
+
+    assert all(isinstance(window, WalkForwardWindow) for window in windows)
+    assert [(w.train_start, w.train_end, w.test_start, w.test_end) for w in windows] == [
+        (0, 4, 4, 6),
+        (2, 6, 6, 8),
+        (4, 8, 8, 10),
+        (6, 10, 10, 12),
+    ]
+    assert windows[0].train_start_time == df.index[0]
+    assert windows[0].train_end_time == df.index[3]
+    assert windows[0].test_start_time == df.index[4]
+    assert windows[0].test_end_time == df.index[5]
+    assert all(window.train_end == window.test_start for window in windows)
+
+
+def test_plan_walk_forward_windows_rejects_insufficient_rows_without_fallback():
+    df = _make_timeframe_df(periods=5)
+
+    with pytest.raises(UnsafeEvaluationError, match="not enough rows"):
+        plan_walk_forward_windows(
+            df,
+            timeframe="M15",
+            train_window=4,
+            test_window=2,
+            step_size=1,
+        )
+
+
+def test_plan_walk_forward_windows_rejects_invalid_index_or_parameters():
+    unsorted_df = _make_timeframe_df(periods=8).sort_index(ascending=False)
+    with pytest.raises(UnsafeEvaluationError, match="sorted timestamps"):
+        plan_walk_forward_windows(
+            unsorted_df,
+            timeframe="M15",
+            train_window=4,
+            test_window=2,
+            step_size=1,
+        )
+
+    df = _make_timeframe_df(periods=8)
+    with pytest.raises(ValueError, match="must be positive"):
+        plan_walk_forward_windows(
+            df,
+            timeframe="M15",
+            train_window=0,
+            test_window=2,
+            step_size=1,
+        )
+
+
+def test_plan_walk_forward_windows_matches_real_h4_dataset_boundaries():
+    df = load_mt5_csv(ROOT / "XAUUSD_H4.csv")
+
+    windows = plan_walk_forward_windows(
+        df,
+        timeframe="H4",
+        train_window=750,
+        test_window=125,
+        step_size=60,
+        min_windows=2,
+    )
+
+    assert len(windows) == 75
+    assert windows[0].train_start_time == pd.Timestamp("2023-01-03 00:00:00")
+    assert windows[0].train_end_time == pd.Timestamp("2023-06-27 20:00:00")
+    assert windows[0].test_start_time == pd.Timestamp("2023-06-28 00:00:00")
+    assert windows[0].test_end_time == pd.Timestamp("2023-07-26 16:00:00")
+    assert windows[-1].train_start == 4440
+    assert windows[-1].test_end == 5315
+    assert windows[-1].test_end_time == pd.Timestamp("2026-06-11 12:00:00")
+
+
+def test_research_config_fingerprint_ignores_runtime_forward_metadata():
+    sample_config = {
+        "id": "sample_M15_001",
+        "timeframe": "M15",
+        "indicators": ["ema", "atr"],
+        "params": {"ema_fast": 12, "ema_slow": 26, "risk_percent": 0.5},
+        "sizing": {"mode": "risk_percent", "risk_percent": 0.5},
+    }
+    forward_config = {
+        **sample_config,
+        "sample_strategy_id": "sample_M15_001",
+        "sample_config_path": str(ROOT / "tmp" / "config.pkl"),
+        "sample_rank": 1,
+        "Phase": "EXACT_OOS_AGG",
+    }
+
+    assert research_config_fingerprint(sample_config) == research_config_fingerprint(
+        forward_config
+    )
+    assert_exact_forward_config_identity(sample_config, forward_config)
+
+
+def test_assert_expected_research_config_fingerprint_accepts_matching_hash():
+    sample_config = {
+        "id": "sample_match_001",
+        "timeframe": "M15",
+        "params": {"ema_fast": 12, "ema_slow": 26},
+    }
+    expected = research_config_fingerprint(sample_config)
+
+    assert (
+        assert_expected_research_config_fingerprint(expected, sample_config) == expected
+    )
+
+
+def test_assert_expected_research_config_fingerprint_rejects_missing_hash():
+    sample_config = {
+        "id": "sample_missing_fp",
+        "timeframe": "H1",
+        "params": {"rr": 1.5},
+    }
+
+    with pytest.raises(UnsafeEvaluationError, match="requires the sample-selected"):
+        assert_expected_research_config_fingerprint("", sample_config)
+
+
+def test_assert_expected_research_config_fingerprint_rejects_mutated_config():
+    sample_config = {
+        "id": "sample_fp_002",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "ema_slow": 26, "risk_percent": 0.5},
+    }
+    mutated = {
+        **sample_config,
+        "params": {"ema_fast": 10, "ema_slow": 26, "risk_percent": 0.5},
+    }
+    expected = research_config_fingerprint(sample_config)
+
+    with pytest.raises(UnsafeEvaluationError, match="fingerprint mismatch"):
+        assert_expected_research_config_fingerprint(expected, mutated)
+
+
+def test_exact_forward_config_identity_rejects_research_parameter_changes():
+    sample_config = {
+        "id": "sample_H1_002",
+        "timeframe": "H1",
+        "indicators": ["ema", "atr"],
+        "params": {"ema_fast": 12, "ema_slow": 26, "risk_percent": 0.5},
+        "exits": {"rr": 1.0},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 10, "ema_slow": 26, "risk_percent": 0.5},
+        "sample_strategy_id": "sample_H1_002",
+    }
+
+    with pytest.raises(UnsafeEvaluationError, match="Exact forward config mismatch"):
+        assert_exact_forward_config_identity(sample_config, forward_config)
+
+
+def test_exact_forward_config_identity_does_not_ignore_nested_research_params():
+    sample_config = {
+        "id": "sample_M30_003",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+        "filters": {"session": {"window_id": "london_open"}},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 12, "window_id": 6},
+    }
+
+    with pytest.raises(UnsafeEvaluationError, match="Exact forward config mismatch"):
+        assert_exact_forward_config_identity(sample_config, forward_config)
+
+
+def test_exact_forward_config_identity_treats_top_level_window_id_as_research_data():
+    sample_config = {
+        "id": "sample_M30_window",
+        "timeframe": "M30",
+        "window_id": 5,
+        "params": {"ema_fast": 12},
+    }
+    forward_config = {
+        **sample_config,
+        "window_id": 6,
+    }
+
+    with pytest.raises(UnsafeEvaluationError, match="Exact forward config mismatch"):
+        assert_exact_forward_config_identity(sample_config, forward_config)
+
+
+def test_exact_forward_config_identity_allows_explicit_nested_metadata_exemptions():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+        "runtime_metadata": {"loaded_window_id": "london_open"},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 12, "window_id": 5},
+        "runtime_metadata": {"loaded_window_id": "new_runtime_window"},
+    }
+
+    assert_exact_forward_config_identity(
+        sample_config,
+        forward_config,
+        ignored_paths={("runtime_metadata", "loaded_window_id")},
+    )
+
+
+def test_exact_forward_config_identity_rejects_structured_metadata_exemptions():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+        "runtime_metadata": {
+            "loaded_window": {"id": "london_open", "ema_fast": 12},
+        },
+    }
+    forward_config = {
+        **sample_config,
+        "runtime_metadata": {
+            "loaded_window": {"id": "new_runtime_window", "ema_fast": 10},
+        },
+    }
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="must point to scalar leaf values"
+    ):
+        assert_exact_forward_config_identity(
+            sample_config,
+            forward_config,
+            ignored_paths={("runtime_metadata", "loaded_window")},
+        )
+
+
+def test_exact_forward_config_identity_rejects_broad_metadata_root_exemptions():
+    with pytest.raises(UnsafeEvaluationError, match="target specific metadata fields"):
+        assert_exact_forward_config_identity(
+            {"runtime_metadata": {"loaded_window_id": "a"}},
+            {"runtime_metadata": {"loaded_window_id": "b"}},
+            ignored_paths={("runtime_metadata",)},
+        )
+
+
+def test_exact_forward_config_identity_rejects_nested_exemptions_for_research_paths():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12, "window_id": 5},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 10, "window_id": 5},
+    }
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="nested ignores are restricted to audited runtime metadata roots"
+    ):
+        assert_exact_forward_config_identity(
+            sample_config,
+            forward_config,
+            ignored_paths={("params", "ema_fast")},
+        )
+
+
+def test_exact_forward_config_identity_rejects_top_level_research_key_exemptions():
+    sample_config = {
+        "id": "sample_M30_004",
+        "timeframe": "M30",
+        "params": {"ema_fast": 12},
+    }
+    forward_config = {
+        **sample_config,
+        "params": {"ema_fast": 10},
+    }
+
+    with pytest.raises(
+        UnsafeEvaluationError, match="audited top-level runtime metadata"
+    ):
+        assert_exact_forward_config_identity(
+            sample_config,
+            forward_config,
+            ignored_keys={"params"},
+        )
+
+
+def test_exact_forward_config_identity_ignores_recorded_fingerprint_metadata():
+    sample_config = {"id": "sample_M15_005", "timeframe": "M15", "params": {"ema_fast": 12}}
+    forward_config = {
+        **sample_config,
+        "sample_strategy_id": "sample_M15_005",
+        "sample_config_fingerprint": "sha256:placeholder",
+    }
+
+    assert_exact_forward_config_identity(sample_config, forward_config)
+
+
+def test_exact_forward_config_identity_rejects_non_finite_values():
+    sample_config = {"id": "sample_H4_003", "timeframe": "H4", "params": {"rr": 1.0}}
+    forward_config = {"id": "sample_H4_003", "timeframe": "H4", "params": {"rr": float("nan")}}
+
+    with pytest.raises(UnsafeEvaluationError, match="non-finite"):
+        research_config_fingerprint(forward_config)
+    with pytest.raises(UnsafeEvaluationError, match="non-finite"):
+        assert_exact_forward_config_identity(sample_config, forward_config)
+
+
+def test_research_config_fingerprint_normalizes_numpy_scalar_values():
+    sample_config = {
+        "id": "sample_np_001",
+        "timeframe": "H1",
+        "params": {
+            "ema_fast": np.int64(12),
+            "risk_percent": np.float64(0.5),
+            "enabled": np.bool_(True),
+        },
+    }
+    native_config = {
+        "id": "sample_np_001",
+        "timeframe": "H1",
+        "params": {
+            "ema_fast": 12,
+            "risk_percent": 0.5,
+            "enabled": True,
+        },
+    }
+
+    assert research_config_fingerprint(sample_config) == research_config_fingerprint(
+        native_config
+    )
+    assert_exact_forward_config_identity(sample_config, native_config)
