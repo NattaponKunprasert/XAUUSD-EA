@@ -16,6 +16,28 @@ from .execution import spread_price, to_price_units
 SUPPORTED_FIBONACCI_EXTENSIONS = (1.618, 2.0, 2.618)
 
 
+def indicator_reversal_exit_due(
+    direction: str,
+    long_signal: bool,
+    short_signal: bool,
+) -> bool:
+    """Return whether the closed signal bar reverses an open position.
+
+    The caller supplies signals from one already closed bar. Long positions
+    exit only on the short signal and short positions exit only on the long
+    signal. Non-boolean signal state fails loudly instead of being coerced from
+    a truthy value that could silently alter exit behavior.
+    """
+    normalized_direction = str(direction).lower()
+    if normalized_direction not in {"long", "short"}:
+        raise ValueError("direction must be 'long' or 'short'")
+    if not isinstance(long_signal, (bool, np.bool_)):
+        raise ValueError("long_signal must be boolean")
+    if not isinstance(short_signal, (bool, np.bool_)):
+        raise ValueError("short_signal must be boolean")
+    return bool(short_signal if normalized_direction == "long" else long_signal)
+
+
 def initial_stop_target(
     entry_price: float,
     entry_atr: float | None,

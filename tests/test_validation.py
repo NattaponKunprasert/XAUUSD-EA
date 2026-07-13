@@ -32,6 +32,7 @@ from xauusd_ea.baseline import (
 )
 from xauusd_ea.exits import (
     fibonacci_extension_target,
+    indicator_reversal_exit_due,
     initial_stop_target,
     max_holding_exit_due,
     next_trailing_stop,
@@ -169,6 +170,7 @@ def _active_notebook_run_backtest():
         "merge_runtime_broker_overrides": merge_runtime_broker_overrides,
         "require_runtime_broker_spec": require_runtime_broker_spec,
         "_calculate_fib_target_safe": fibonacci_extension_target,
+        "_indicator_reversal_exit_due_safe": indicator_reversal_exit_due,
         "_initial_stop_target_safe": initial_stop_target,
         "_max_holding_exit_due_safe": max_holding_exit_due,
         "_next_trailing_stop_safe": next_trailing_stop,
@@ -292,6 +294,22 @@ def test_active_notebook_routes_initial_stop_target_through_canonical_helper():
     assert "def legacy_calculate_atr_stop(" in source
     assert "def legacy_calculate_tp_by_rr(" in source
     assert "def legacy_calculate_structure_stop(" in source
+
+
+def test_active_notebook_routes_indicator_reversal_through_canonical_helper():
+    source = _notebook_code_source()
+    active_source = _notebook_cell_source(18)
+
+    assert (
+        "indicator_reversal_exit_due as _indicator_reversal_exit_due_safe"
+        in active_source
+    )
+    assert "reversal_due = _indicator_reversal_exit_due_safe(" in active_source
+    assert "bool(long_sig.iloc[signal_i])" in active_source
+    assert "bool(short_sig.iloc[signal_i])" in active_source
+    assert "opposite = bool(" not in active_source
+    assert "def indicator_reversal(" not in source
+    assert "def legacy_indicator_reversal(" in source
 
 
 def test_active_notebook_routes_max_holding_exit_through_canonical_helper():
