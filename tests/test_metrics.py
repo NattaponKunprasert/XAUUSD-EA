@@ -1,7 +1,30 @@
 import pandas as pd
 import pytest
 
-from xauusd_ea.metrics import clean_strategies, compute_strategy_metrics
+from xauusd_ea.metrics import (
+    clean_strategies,
+    compute_strategy_metrics,
+    max_drawdown_fraction,
+)
+
+
+def test_max_drawdown_fraction_tracks_running_peak_and_empty_curve():
+    assert max_drawdown_fraction([]) == 0.0
+    assert max_drawdown_fraction([1000.0, 1100.0, 990.0, 1080.0]) == pytest.approx(
+        0.10
+    )
+
+
+@pytest.mark.parametrize(
+    ("equity", "message"),
+    [
+        ([1000.0, float("nan")], "finite"),
+        ([0.0, 1.0], "positive running peak"),
+    ],
+)
+def test_max_drawdown_fraction_rejects_unsafe_equity(equity, message):
+    with pytest.raises(ValueError, match=message):
+        max_drawdown_fraction(equity)
 
 
 def test_compute_strategy_metrics_caps_infinite_profit_factor_for_score():

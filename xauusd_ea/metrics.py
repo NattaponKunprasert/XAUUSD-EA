@@ -28,6 +28,25 @@ DEFAULT_METRICS = {
 }
 
 
+def max_drawdown_fraction(equity_curve) -> float:
+    """Return peak-to-trough drawdown as a fraction of the running peak.
+
+    The active engine uses this during a backtest to enforce its configured
+    early-stop threshold. Non-finite equity or a non-positive running peak is
+    rejected because either state makes percentage drawdown unsafe to infer.
+    """
+    equity = pd.Series(equity_curve, dtype=float)
+    if equity.empty:
+        return 0.0
+    if not np.isfinite(equity.to_numpy()).all():
+        raise ValueError("equity_curve must contain only finite values")
+
+    peak = equity.cummax()
+    if (peak <= 0.0).any():
+        raise ValueError("equity_curve must have a positive running peak")
+    return float(((peak - equity) / peak).max())
+
+
 def compute_strategy_metrics(
     trades: list[dict[str, Any]],
     equity_curve=None,
@@ -55,11 +74,7 @@ def compute_strategy_metrics(
 
     peak = eq.cummax()
     drawdown_abs = float((peak - eq).max())
-    drawdown_pct = (
-        float(((peak - eq) / peak.replace(0, np.nan)).max()) if len(eq) else 0.0
-    )
-    if pd.isna(drawdown_pct):
-        drawdown_pct = 0.0
+    drawdown_pct = max_drawdown_fraction(eq)
 
     returns = eq.pct_change().replace([np.inf, -np.inf], np.nan).dropna()
     if len(returns) > 1 and returns.std() > 0:
