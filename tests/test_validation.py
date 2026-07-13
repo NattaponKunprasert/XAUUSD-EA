@@ -32,6 +32,7 @@ from xauusd_ea.baseline import (
 )
 from xauusd_ea.exits import (
     fibonacci_extension_target,
+    initial_stop_target,
     max_holding_exit_due,
     next_trailing_stop,
     resolve_intrabar_stop_target,
@@ -168,6 +169,7 @@ def _active_notebook_run_backtest():
         "merge_runtime_broker_overrides": merge_runtime_broker_overrides,
         "require_runtime_broker_spec": require_runtime_broker_spec,
         "_calculate_fib_target_safe": fibonacci_extension_target,
+        "_initial_stop_target_safe": initial_stop_target,
         "_max_holding_exit_due_safe": max_holding_exit_due,
         "_next_trailing_stop_safe": next_trailing_stop,
         "_intrabar_stop_target_safe": resolve_intrabar_stop_target,
@@ -188,7 +190,6 @@ def _active_notebook_run_backtest():
         "_stochastic": stochastic_oscillator,
         "_max_drawdown_pct_from_equity": max_drawdown_fraction,
         "entry_filters": {},
-        "_valid_stop_target": lambda *args, **kwargs: True,
     }
     module = ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[]))
     exec(compile(module, "<active-notebook-functions>", "exec"), namespace)
@@ -274,6 +275,23 @@ def test_active_notebook_routes_trailing_stop_through_canonical_helper():
     assert "current_atr=current_atr" in source
     assert "dist = current_atr * mult" not in source
     assert "steps = math.floor(max(0.0, favourable) / min_step)" not in source
+
+
+def test_active_notebook_routes_initial_stop_target_through_canonical_helper():
+    source = _notebook_code_source()
+    active_source = _notebook_cell_source(18)
+
+    assert "initial_stop_target as _initial_stop_target_safe" in active_source
+    assert "stop_target = _initial_stop_target_safe(" in active_source
+    assert "stop_loss, take_profit = stop_target" in active_source
+    assert "_calculate_structure_stop_safe" not in source
+    assert "_valid_stop_target" not in source
+    assert "def calculate_atr_stop(" not in source
+    assert "def calculate_tp_by_rr(" not in source
+    assert "def calculate_structure_stop(" not in source
+    assert "def legacy_calculate_atr_stop(" in source
+    assert "def legacy_calculate_tp_by_rr(" in source
+    assert "def legacy_calculate_structure_stop(" in source
 
 
 def test_active_notebook_routes_max_holding_exit_through_canonical_helper():

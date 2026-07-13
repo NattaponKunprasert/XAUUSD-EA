@@ -9,6 +9,7 @@ from xauusd_ea.baseline import (
 )
 from xauusd_ea.exits import (
     fibonacci_extension_target,
+    initial_stop_target,
     max_holding_exit_due,
     next_trailing_stop,
     resolve_intrabar_stop_target,
@@ -30,6 +31,84 @@ def _bars() -> pd.DataFrame:
             "low": [98.0, 99.0, 101.0, 1.0],
         }
     )
+
+
+@pytest.mark.parametrize(
+    ("direction", "expected_stop", "expected_target"),
+    [
+        ("long", 98.0, 110.0),
+        ("short", 110.0, 98.0),
+    ],
+)
+def test_initial_atr_stop_rr_target_is_directional(
+    direction, expected_stop, expected_target
+):
+    levels = initial_stop_target(
+        104.0,
+        3.0,
+        _bars(),
+        signal_index=2,
+        direction=direction,
+        exit_config={
+            "sl_type": "atr",
+            "atr_multiplier": 2.0,
+            "tp_type": "rr",
+            "risk_reward_ratio": 1.0,
+        },
+    )
+
+    assert levels == pytest.approx((expected_stop, expected_target))
+
+
+def test_initial_structure_stop_uses_only_closed_bars_through_signal():
+    original = _bars()
+    mutated_future = original.copy()
+    mutated_future.loc[3, ["high", "low"]] = [5000.0, -5000.0]
+
+    config = {
+        "sl_type": "structure",
+        "structure_window": 3,
+        "tp_type": "rr",
+        "risk_reward_ratio": 2.0,
+    }
+    original_levels = initial_stop_target(
+        106.0, None, original, 2, "long", config
+    )
+    mutated_levels = initial_stop_target(
+        106.0, None, mutated_future, 2, "long", config
+    )
+
+    assert original_levels == pytest.approx((98.0, 122.0))
+    assert mutated_levels == pytest.approx(original_levels)
+
+
+def test_initial_stop_target_returns_none_for_invalid_market_geometry():
+    frame = pd.DataFrame({"high": [110.0], "low": [105.0]})
+
+    assert initial_stop_target(
+        100.0,
+        None,
+        frame,
+        0,
+        "long",
+        {"sl_type": "structure", "tp_type": "rr"},
+    ) is None
+
+
+@pytest.mark.parametrize(
+    ("config", "message"),
+    [
+        ({"sl_type": "mystery", "tp_type": "rr"}, "sl_type"),
+        ({"sl_type": "atr", "tp_type": "mystery"}, "tp_type"),
+        (
+            {"sl_type": "atr", "atr_multiplier": 0, "tp_type": "rr"},
+            "atr_multiplier",
+        ),
+    ],
+)
+def test_initial_stop_target_rejects_unsafe_configuration(config, message):
+    with pytest.raises(ValueError, match=message):
+        initial_stop_target(104.0, 3.0, _bars(), 2, "long", config)
 
 
 def test_intrabar_long_gap_and_same_bar_conflict_are_conservative():

@@ -16,6 +16,103 @@ from .execution import spread_price, to_price_units
 SUPPORTED_FIBONACCI_EXTENSIONS = (1.618, 2.0, 2.618)
 
 
+def initial_stop_target(
+    entry_price: float,
+    entry_atr: float | None,
+    df: pd.DataFrame,
+    signal_index: int,
+    direction: str,
+    exit_config: Mapping[str, Any] | None,
+) -> tuple[float, float] | None:
+    """Build one candidate's initial SL/TP from closed signal-bar inputs.
+
+    ATR stops use the ATR value frozen at ``signal_index``. Structure stops
+    use only the configured closed-bar window through ``signal_index``.
+    Invalid market geometry returns ``None`` so the caller skips the trade;
+    unknown or unsafe configuration fails loudly instead of falling back.
+    """
+    normalized_direction = str(direction).lower()
+    if normalized_direction not in {"long", "short"}:
+        raise ValueError("direction must be 'long' or 'short'")
+    if not isinstance(signal_index, int) or isinstance(signal_index, bool):
+        raise ValueError("signal_index must be an integer")
+    if not 0 <= signal_index < len(df):
+        raise IndexError("signal_index is outside df")
+
+    numeric_entry = float(entry_price)
+    if not math.isfinite(numeric_entry):
+        raise ValueError("entry_price must be finite")
+    cfg = dict(exit_config or {})
+
+    sl_type = str(cfg.get("sl_type", "atr")).lower()
+    if sl_type == "atr":
+        if entry_atr is None:
+            raise ValueError("entry_atr is required for an ATR stop")
+        numeric_atr = float(entry_atr)
+        multiplier = float(cfg.get("atr_multiplier", 2.0))
+        if not math.isfinite(numeric_atr) or numeric_atr <= 0.0:
+            raise ValueError("entry_atr must be finite and positive")
+        if not math.isfinite(multiplier) or multiplier <= 0.0:
+            raise ValueError("atr_multiplier must be finite and positive")
+        distance = numeric_atr * multiplier
+        stop = (
+            numeric_entry - distance
+            if normalized_direction == "long"
+            else numeric_entry + distance
+        )
+    elif sl_type == "structure":
+        if not {"high", "low"}.issubset(df.columns):
+            raise ValueError("df must contain high and low columns")
+        window = cfg.get("structure_window", 20)
+        if not isinstance(window, int) or isinstance(window, bool) or window <= 0:
+            raise ValueError("structure_window must be a positive integer")
+        start = max(0, signal_index - window + 1)
+        closed_window = df.iloc[start : signal_index + 1]
+        column = "low" if normalized_direction == "long" else "high"
+        stop = float(
+            closed_window[column].min()
+            if normalized_direction == "long"
+            else closed_window[column].max()
+        )
+        if not math.isfinite(stop):
+            raise ValueError("closed-bar structure stop must be finite")
+    else:
+        raise ValueError("sl_type must be 'atr' or 'structure'")
+
+    tp_type = str(cfg.get("tp_type", "rr")).lower()
+    if tp_type == "rr":
+        ratio = float(cfg.get("risk_reward_ratio", 2.0))
+        if not math.isfinite(ratio) or ratio <= 0.0:
+            raise ValueError("risk_reward_ratio must be finite and positive")
+        risk = abs(numeric_entry - stop)
+        target = (
+            numeric_entry + risk * ratio
+            if normalized_direction == "long"
+            else numeric_entry - risk * ratio
+        )
+    elif tp_type == "fib":
+        target = fibonacci_extension_target(
+            numeric_entry,
+            df,
+            signal_index,
+            normalized_direction,
+            cfg.get("fib_levels", [1.618]),
+            lookback=int(cfg.get("fib_lookback", 20)),
+        )
+    else:
+        raise ValueError("tp_type must be 'rr' or 'fib'")
+
+    values = (numeric_entry, float(stop), float(target))
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("entry, stop, and target must be finite")
+    _, numeric_stop, numeric_target = values
+    if normalized_direction == "long":
+        valid = numeric_stop < numeric_entry < numeric_target
+    else:
+        valid = numeric_target < numeric_entry < numeric_stop
+    return (numeric_stop, numeric_target) if valid else None
+
+
 def resolve_intrabar_stop_target(
     open_position: Mapping[str, Any],
     bar_open_bid: float,
