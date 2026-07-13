@@ -6,7 +6,11 @@ from .baseline import (
     assert_runtime_broker_spec_matches_profile,
     load_broker_profile,
 )
-from .exits import fibonacci_extension_target, initial_stop_target
+from .exits import (
+    fibonacci_extension_target,
+    indicator_reversal_exit_due,
+    initial_stop_target,
+)
 from .execution import apply_execution_price, commission_per_side
 from .filters import passes_entry_filters
 from .indicators import bollinger_bands, macd, stochastic_oscillator
@@ -33,6 +37,7 @@ __all__ = [
     "commission_per_side",
     "calculate_position_size",
     "fibonacci_extension_target",
+    "indicator_reversal_exit_due",
     "initial_stop_target",
     "passes_entry_filters",
     "macd",

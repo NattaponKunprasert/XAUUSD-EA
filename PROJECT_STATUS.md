@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Isolate the active engine's initial stop/target construction so ATR and structure stops plus RR and Fibonacci targets use one importable closed-bar implementation with no hidden notebook-runtime stubs.
+Isolate the active engine's indicator-reversal exit decision so long and short positions use one importable closed-bar implementation with no competing notebook behavior.
 
 ## Verified inputs
 
@@ -55,6 +55,7 @@ Isolate the active engine's initial stop/target construction so ATR and structur
 - The active engine now imports canonical intrabar stop/target resolution, preserving Bid-triggered long exits, Ask-triggered short exits, actual gap-through bar-open execution in both supported execution modes, conservative stop-first same-bar ambiguity, and close-bar SL/TP precedence over later reversal/time decisions
 - The active engine now imports canonical maximum drawdown fraction accounting, uses initial capital as the first running peak without extending the equity output horizon, fails loudly on invalid equity, stops at the current processed bar without reading future prices, and records an explicit stopped-early flag even when the triggering trade already closed with its original exit reason
 - The active engine now imports canonical initial stop/target construction, freezes ATR stops at the closed signal bar, bounds structure stops to closed bars through that signal, rejects unknown exit modes, skips invalid directional geometry, and no longer depends on undefined structure-stop or test-only stop-validation helpers
+- The active engine now imports canonical indicator-reversal exit decisions, maps each open direction only to the opposite closed-bar signal, rejects ambiguous signal state, and isolates the competing legacy notebook helper
 - Local verification on 2026-07-06 passed the targeted accounting/broker/validation suite plus `python -m pytest -q` on the conflict-resolved combined head: 97 tests passed in both runs
 - Local verification on 2026-07-07 passed the focused accounting/baseline suite (45 tests) and full `python -m pytest -q` (103 tests) after adding the directional short smoke path
 - Local verification on 2026-07-07 passed the focused Fibonacci/validation suite (47 tests) and full `python -m pytest -q` (109 tests) after isolating Fibonacci target behavior
@@ -81,6 +82,7 @@ Isolate the active engine's initial stop/target construction so ATR and structur
 - Local verification on 2026-07-13 passed the focused metrics/validation suite (69 tests) and full `python -m pytest -q` (208 tests) after routing the active maximum-drawdown cutoff through canonical metrics accounting; notebook JSON/all 21 code-cell AST parsing, compileall, and `git diff --check` also passed, and pytest reported the known Windows temp-symlink cleanup permission warning after the passing full run
 - Local verification on 2026-07-13 passed the focused metrics/validation suite (72 tests), the broader accounting/execution/exits/sizing/broker/baseline/metrics/validation suite (181 tests), and full `python -m pytest -q` (211 tests) after fixing first-loss drawdown accounting and stopped-early propagation; notebook JSON/all 21 code-cell AST parsing, compileall, and `git diff --check` also passed, and pytest reported only the known post-success Windows temp-symlink cleanup warning
 - Local verification on 2026-07-13 passed the focused exit/validation/execution/accounting/sizing/baseline suite (159 tests) and full `python -m pytest -q` (219 tests) after routing initial stop/target construction through one canonical closed-bar helper and removing hidden runtime stubs; notebook JSON/all 21 code-cell AST parsing, compileall, and `git diff --check` also passed, and pytest reported only the known post-success Windows temp-symlink cleanup warning
+- Local verification on 2026-07-13 passed the focused exit/validation suite (98 tests), the broader exit/validation/execution/accounting/sizing/baseline suite (167 tests), and full `python -m pytest -q` (227 tests) after routing indicator-reversal exit decisions through one canonical closed-bar helper; notebook JSON/all 21 code-cell AST parsing, compileall, and `git diff --check` also passed, and pytest reported only the known post-success Windows temp-symlink cleanup warning
 
 ## Broker facts
 

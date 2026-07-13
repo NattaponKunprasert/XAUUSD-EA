@@ -9,6 +9,7 @@ from xauusd_ea.baseline import (
 )
 from xauusd_ea.exits import (
     fibonacci_extension_target,
+    indicator_reversal_exit_due,
     initial_stop_target,
     max_holding_exit_due,
     next_trailing_stop,
@@ -31,6 +32,38 @@ def _bars() -> pd.DataFrame:
             "low": [98.0, 99.0, 101.0, 1.0],
         }
     )
+
+
+@pytest.mark.parametrize(
+    ("direction", "long_signal", "short_signal", "expected"),
+    [
+        ("long", False, True, True),
+        ("long", True, False, False),
+        ("short", True, False, True),
+        ("short", False, True, False),
+    ],
+)
+def test_indicator_reversal_exit_uses_only_the_opposite_closed_bar_signal(
+    direction, long_signal, short_signal, expected
+):
+    assert (
+        indicator_reversal_exit_due(direction, long_signal, short_signal) is expected
+    )
+
+
+@pytest.mark.parametrize(
+    ("direction", "long_signal", "short_signal", "message"),
+    [
+        ("flat", False, False, "direction"),
+        ("long", 1, False, "long_signal"),
+        ("short", False, "yes", "short_signal"),
+    ],
+)
+def test_indicator_reversal_exit_rejects_ambiguous_state(
+    direction, long_signal, short_signal, message
+):
+    with pytest.raises(ValueError, match=message):
+        indicator_reversal_exit_due(direction, long_signal, short_signal)
 
 
 @pytest.mark.parametrize(
