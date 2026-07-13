@@ -15,6 +15,12 @@ def test_max_drawdown_fraction_tracks_running_peak_and_empty_curve():
     )
 
 
+def test_max_drawdown_fraction_uses_initial_equity_as_first_peak():
+    assert max_drawdown_fraction(
+        [999.9], initial_equity=1000.0
+    ) == pytest.approx(0.0001)
+
+
 @pytest.mark.parametrize(
     ("equity", "message"),
     [
@@ -56,6 +62,26 @@ def test_compute_strategy_metrics_tracks_drawdown_and_loss_streaks():
 
     assert metrics["Max Drawdown"] == pytest.approx(3.0)
     assert metrics["Max Consecutive Losses"] == 2
+    assert metrics["Stopped Early"] is True
+
+
+def test_compute_strategy_metrics_tracks_first_loss_and_explicit_stop_flag():
+    metrics = compute_strategy_metrics(
+        [
+            {
+                "pnl": -0.1,
+                "bars": 0,
+                "reason": "EntryBar_SL",
+                "stopped_early": True,
+            }
+        ],
+        equity_curve=[999.9],
+        initial_capital=1000.0,
+        bars_per_year=100,
+    )
+
+    assert metrics["Max Drawdown"] == pytest.approx(0.1)
+    assert metrics["Max Drawdown %"] == pytest.approx(0.0001)
     assert metrics["Stopped Early"] is True
 
 

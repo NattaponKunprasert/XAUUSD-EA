@@ -51,7 +51,7 @@ from xauusd_ea.indicators import (
     relative_strength_index,
     stochastic_oscillator,
 )
-from xauusd_ea.metrics import max_drawdown_fraction
+from xauusd_ea.metrics import compute_strategy_metrics, max_drawdown_fraction
 from xauusd_ea.sizing import calculate_position_size
 from xauusd_ea.validation import (
     SampleHoldoutSplit,
@@ -368,7 +368,9 @@ def test_active_notebook_routes_drawdown_cutoff_through_canonical_helper():
     assert (
         "max_drawdown_fraction as _max_drawdown_pct_from_equity" in source
     )
-    assert source.count("_max_drawdown_pct_from_equity(equity)") == 4
+    assert source.count(
+        "_max_drawdown_pct_from_equity(equity, initial_equity=initial_capital)"
+    ) == 4
     assert "def _max_drawdown_pct_from_equity(" not in source
 
 
@@ -678,6 +680,62 @@ def test_active_notebook_drawdown_cutoff_stops_at_current_bar_without_lookahead(
     assert final_capital < 1000.0
     assert len(equity) == len(frame)
     assert equity[-1] == pytest.approx(equity[3])
+
+
+def test_active_notebook_first_entry_bar_loss_stops_before_second_signal():
+    run_backtest = _active_notebook_run_backtest()
+    index = pd.date_range("2025-01-01", periods=6, freq="15min")
+    frame = pd.DataFrame(
+        {
+            "open": [100.0] * 6,
+            "high": [100.5] * 6,
+            "low": [99.5, 99.5, 98.0, 99.5, 98.0, 99.5],
+            "close": [100.0, 100.0, 99.0, 100.0, 99.0, 100.0],
+            "volume": [1.0] * 6,
+        },
+        index=index,
+    )
+    config = {
+        "id": "first_entry_bar_drawdown_cutoff",
+        "entry": {
+            "long_condition": lambda data: pd.Series(
+                [False, True, False, True, False, False], index=data.index
+            ),
+            "short_condition": lambda data: pd.Series(False, index=data.index),
+        },
+        "params": {"ATR": {"period": 2}},
+        "exit": {
+            "atr_period": 2,
+            "atr_multiplier": 1.0,
+            "sl_type": "atr",
+            "tp_type": "rr",
+            "risk_reward_ratio": 2.0,
+            "max_drawdown_pct": 0.00005,
+        },
+        "sizing": {"sizing_method": "fixed", "fixed_lot": 0.1},
+        "friction": {},
+    }
+
+    trades, final_capital, equity = run_backtest(
+        config, frame, initial_capital=1000.0, execution_mode="next_bar_open"
+    )
+    metrics = compute_strategy_metrics(
+        trades,
+        equity_curve=equity,
+        initial_capital=1000.0,
+        bars_per_year=6048,
+    )
+
+    assert len(trades) == 1
+    assert trades[0]["entry_time"] == index[2]
+    assert trades[0]["exit_time"] == index[2]
+    assert trades[0]["reason"] == "EntryBar_SL"
+    assert trades[0]["stopped_early"] is True
+    assert final_capital == pytest.approx(999.9)
+    assert metrics["Max Drawdown %"] == pytest.approx(0.0001)
+    assert metrics["Stopped Early"] is True
+    assert len(equity) == len(frame) - 1
+    assert equity[-1] == pytest.approx(final_capital)
 
 
 def test_active_notebook_inspect_path_requires_clean_export():

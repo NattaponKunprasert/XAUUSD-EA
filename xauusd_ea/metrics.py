@@ -28,7 +28,11 @@ DEFAULT_METRICS = {
 }
 
 
-def max_drawdown_fraction(equity_curve) -> float:
+def max_drawdown_fraction(
+    equity_curve,
+    *,
+    initial_equity: float | None = None,
+) -> float:
     """Return peak-to-trough drawdown as a fraction of the running peak.
 
     The active engine uses this during a backtest to enforce its configured
@@ -36,6 +40,14 @@ def max_drawdown_fraction(equity_curve) -> float:
     rejected because either state makes percentage drawdown unsafe to infer.
     """
     equity = pd.Series(equity_curve, dtype=float)
+    if initial_equity is not None:
+        initial_equity = float(initial_equity)
+        if not np.isfinite(initial_equity) or initial_equity <= 0.0:
+            raise ValueError("initial_equity must be finite and positive")
+        equity = pd.concat(
+            [pd.Series([initial_equity], dtype=float), equity],
+            ignore_index=True,
+        )
     if equity.empty:
         return 0.0
     if not np.isfinite(equity.to_numpy()).all():
@@ -72,9 +84,16 @@ def compute_strategy_metrics(
         else 0.0
     )
 
-    peak = eq.cummax()
-    drawdown_abs = float((peak - eq).max())
-    drawdown_pct = max_drawdown_fraction(eq)
+    drawdown_equity = pd.concat(
+        [pd.Series([float(initial_capital)], dtype=float), eq],
+        ignore_index=True,
+    )
+    peak = drawdown_equity.cummax()
+    drawdown_abs = float((peak - drawdown_equity).max())
+    drawdown_pct = max_drawdown_fraction(
+        eq,
+        initial_equity=initial_capital,
+    )
 
     returns = eq.pct_change().replace([np.inf, -np.inf], np.nan).dropna()
     if len(returns) > 1 and returns.std() > 0:
@@ -93,13 +112,18 @@ def compute_strategy_metrics(
         return dict(DEFAULT_METRICS)
 
     trades_df = pd.DataFrame(trades)
-    stopped_early = bool(
+    stopped_by_reason = bool(
         "reason" in trades_df.columns
         and trades_df["reason"]
         .astype(str)
         .str.contains("StoppedEarly", case=False, na=False)
         .any()
     )
+    stopped_by_flag = bool(
+        "stopped_early" in trades_df.columns
+        and trades_df["stopped_early"].eq(True).any()
+    )
+    stopped_early = stopped_by_reason or stopped_by_flag
     wins = trades_df[trades_df["pnl"] > 0]
     losses = trades_df[trades_df["pnl"] < 0]
     win_rate = float(len(wins) / len(trades_df)) if len(trades_df) else 0.0
