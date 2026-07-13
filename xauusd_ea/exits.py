@@ -10,10 +10,84 @@ import numpy as np
 import pandas as pd
 
 from .baseline import require_runtime_broker_spec
-from .execution import to_price_units
+from .execution import spread_price, to_price_units
 
 
 SUPPORTED_FIBONACCI_EXTENSIONS = (1.618, 2.0, 2.618)
+
+
+def resolve_intrabar_stop_target(
+    open_position: Mapping[str, Any],
+    bar_open_bid: float,
+    bar_high_bid: float,
+    bar_low_bid: float,
+    friction: Mapping[str, Any] | None,
+    runtime_spec: Mapping[str, Any],
+) -> tuple[float | None, str | None]:
+    """Resolve one Bid-OHLC bar under the conservative SL/TP policy.
+
+    Long exits trigger directly on Bid. Short exits trigger on Ask values
+    derived from the verified Bid source and audited spread, while the raw Bid
+    price is returned for the execution layer. Gap-through opens execute at the
+    opening Bid; when both levels are touched later in one bar, the stop wins.
+    """
+    spec = require_runtime_broker_spec(runtime_spec)
+    if not isinstance(open_position, Mapping):
+        raise ValueError("open_position must be a mapping")
+    missing = [
+        field
+        for field in ("direction", "stop_loss", "take_profit")
+        if field not in open_position
+    ]
+    if missing:
+        raise ValueError(f"open_position is missing required fields: {missing!r}")
+
+    bar_open = float(bar_open_bid)
+    bar_high = float(bar_high_bid)
+    bar_low = float(bar_low_bid)
+    stop = float(open_position["stop_loss"])
+    target = float(open_position["take_profit"])
+    if not all(
+        math.isfinite(value)
+        for value in (bar_open, bar_high, bar_low, stop, target)
+    ):
+        raise ValueError("bar prices, stop_loss, and take_profit must be finite")
+    if bar_low > bar_open or bar_open > bar_high:
+        raise ValueError("Bid OHLC must satisfy low <= open <= high")
+
+    direction = str(open_position["direction"]).lower()
+    stop_reason = "TrailingStop" if open_position.get("stop_loss_is_trailing") else "SL"
+    if direction == "long":
+        if stop >= target:
+            raise ValueError("long stop_loss must be below take_profit")
+        if bar_open <= stop:
+            return bar_open, stop_reason
+        if bar_open >= target:
+            return bar_open, "TP"
+        if bar_low <= stop:
+            return stop, stop_reason
+        if bar_high >= target:
+            return target, "TP"
+        return None, None
+
+    if direction == "short":
+        if stop <= target:
+            raise ValueError("short stop_loss must be above take_profit")
+        spread = spread_price(friction, spec)
+        open_ask = bar_open + spread
+        high_ask = bar_high + spread
+        low_ask = bar_low + spread
+        if open_ask >= stop:
+            return bar_open, stop_reason
+        if open_ask <= target:
+            return bar_open, "TP"
+        if high_ask >= stop:
+            return float(stop - spread), stop_reason
+        if low_ask <= target:
+            return float(target - spread), "TP"
+        return None, None
+
+    raise ValueError("direction must be 'long' or 'short'")
 
 
 def max_holding_exit_due(

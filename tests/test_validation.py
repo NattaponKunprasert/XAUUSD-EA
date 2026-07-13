@@ -34,6 +34,7 @@ from xauusd_ea.exits import (
     fibonacci_extension_target,
     max_holding_exit_due,
     next_trailing_stop,
+    resolve_intrabar_stop_target,
 )
 from xauusd_ea.execution import (
     apply_execution_price,
@@ -168,6 +169,7 @@ def _active_notebook_run_backtest():
         "_calculate_fib_target_safe": fibonacci_extension_target,
         "_max_holding_exit_due_safe": max_holding_exit_due,
         "_next_trailing_stop_safe": next_trailing_stop,
+        "_intrabar_stop_target_safe": resolve_intrabar_stop_target,
         "_apply_execution_price_safe": apply_execution_price,
         "_commission_per_side_safe": commission_per_side,
         "_spread_price_safe": spread_price,
@@ -185,7 +187,6 @@ def _active_notebook_run_backtest():
         "_stochastic": stochastic_oscillator,
         "entry_filters": {},
         "_valid_stop_target": lambda *args, **kwargs: True,
-        "_intrabar_stop_target": lambda *args, **kwargs: (None, None),
     }
     module = ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[]))
     exec(compile(module, "<active-notebook-functions>", "exec"), namespace)
@@ -282,6 +283,17 @@ def test_active_notebook_routes_max_holding_exit_through_canonical_helper():
     assert "max_holding_exit_due as _max_holding_exit_due_safe" in active_source
     assert "_max_holding_exit_due_safe(" in active_source
     assert "bars_held >= max_hold" not in active_source
+
+
+def test_active_notebook_routes_intrabar_exits_through_canonical_helper():
+    active_source = _notebook_cell_source(18)
+
+    assert "resolve_intrabar_stop_target as _intrabar_stop_target_safe" in active_source
+    assert active_source.count("_intrabar_stop_target_safe(") == 3
+    assert "_intrabar_stop_target(" not in active_source
+    assert "_intrabar_stop_target_safe(open_pos, bar_open," in active_source
+    assert 'if execution_mode == "same_bar_close":' in active_source
+    assert 'if execution_mode == "next_bar_open" and exit_price_raw is None:' in active_source
 
 
 def test_active_notebook_uses_canonical_candidate_indicator_math():
@@ -458,6 +470,155 @@ def test_next_bar_entry_inputs_ignore_entry_bar_high_low_close():
     assert original_entry["take_profit"] == pytest.approx(
         mutated_entry["take_profit"]
     )
+
+
+@pytest.mark.parametrize(
+    ("direction", "gap_open", "gap_high", "gap_low"),
+    [
+        ("long", 98.0, 100.0, 97.0),
+        ("short", 102.0, 103.0, 100.0),
+    ],
+)
+def test_active_notebook_close_bar_gap_exits_at_actual_bar_open(
+    direction, gap_open, gap_high, gap_low
+):
+    run_backtest = _active_notebook_run_backtest()
+    index = pd.date_range("2025-01-01", periods=6, freq="15min")
+    frame = pd.DataFrame(
+        {
+            "open": [100.0, 100.0, 100.0, gap_open, 100.0, 100.0],
+            "high": [101.0, 101.0, 101.0, gap_high, 101.0, 101.0],
+            "low": [99.0, 99.0, 99.0, gap_low, 99.0, 99.0],
+            "close": [100.0] * 6,
+            "volume": [1.0] * 6,
+        },
+        index=index,
+    )
+    active_signal = lambda data: pd.Series(
+        [False, False, True, False, False, False], index=data.index
+    )
+    inactive_signal = lambda data: pd.Series(False, index=data.index)
+    config = {
+        "id": f"close_bar_{direction}_gap",
+        "entry": {
+            "long_condition": active_signal if direction == "long" else inactive_signal,
+            "short_condition": active_signal if direction == "short" else inactive_signal,
+        },
+        "params": {"ATR": {"period": 2}},
+        "exit": {
+            "atr_period": 2,
+            "atr_multiplier": 1.0,
+            "sl_type": "atr",
+            "tp_type": "rr",
+            "risk_reward_ratio": 2.0,
+        },
+        "sizing": {"sizing_method": "fixed", "fixed_lot": 0.1},
+        "friction": {},
+    }
+
+    trades, _, _ = run_backtest(
+        config, frame, execution_mode="same_bar_close"
+    )
+
+    assert len(trades) == 1
+    assert trades[0]["direction"] == direction
+    assert trades[0]["exit_time"] == index[3]
+    assert trades[0]["exit_raw"] == pytest.approx(gap_open)
+    assert trades[0]["reason"] == "SL"
+
+
+@pytest.mark.parametrize(
+    ("direction", "close_price", "bar_high", "bar_low", "close_exit_kind"),
+    [
+        ("long", 105.0, 106.0, 97.0, "reversal"),
+        ("short", 95.0, 103.0, 94.0, "reversal"),
+        ("long", 105.0, 106.0, 97.0, "time"),
+        ("short", 95.0, 103.0, 94.0, "time"),
+    ],
+)
+def test_active_notebook_close_bar_intrabar_stop_precedes_later_close_exit(
+    direction, close_price, bar_high, bar_low, close_exit_kind
+):
+    run_backtest = _active_notebook_run_backtest()
+    index = pd.date_range("2025-01-01", periods=6, freq="15min")
+    frame = pd.DataFrame(
+        {
+            "open": [100.0] * 6,
+            "high": [101.0, 101.0, 101.0, bar_high, 101.0, 101.0],
+            "low": [99.0, 99.0, 99.0, bar_low, 99.0, 99.0],
+            "close": [100.0, 100.0, 100.0, close_price, 100.0, 100.0],
+            "volume": [1.0] * 6,
+        },
+        index=index,
+    )
+    entry_signal = pd.Series(
+        [False, False, True, False, False, False], index=index
+    )
+    opposite_signal = pd.Series(
+        [False, False, False, close_exit_kind == "reversal", False, False],
+        index=index,
+    )
+    inactive_signal = pd.Series(False, index=index)
+    if direction == "long":
+        long_signal, short_signal = entry_signal, opposite_signal
+    else:
+        long_signal, short_signal = opposite_signal, entry_signal
+    if close_exit_kind == "time":
+        long_signal = entry_signal if direction == "long" else inactive_signal
+        short_signal = entry_signal if direction == "short" else inactive_signal
+
+    config = {
+        "id": f"close_bar_{direction}_{close_exit_kind}_vs_stop",
+        "entry": {
+            "long_condition": lambda data: long_signal,
+            "short_condition": lambda data: short_signal,
+        },
+        "params": {"ATR": {"period": 2}},
+        "exit": {
+            "atr_period": 2,
+            "atr_multiplier": 1.0,
+            "sl_type": "atr",
+            "tp_type": "rr",
+            "risk_reward_ratio": 2.0,
+            "use_indicator_exit": close_exit_kind == "reversal",
+            "max_holding_bars": 1 if close_exit_kind == "time" else 0,
+        },
+        "sizing": {"sizing_method": "fixed", "fixed_lot": 0.1},
+        "friction": {},
+    }
+
+    trades, _, _ = run_backtest(config, frame, execution_mode="same_bar_close")
+
+    assert len(trades) == 1
+    trade = trades[0]
+    assert trade["direction"] == direction
+    assert trade["exit_time"] == index[3]
+    assert trade["reason"] == "SL"
+    spread = load_broker_profile(
+        ROOT / "config" / "xm_micro_gold.json"
+    ).spread_baseline_price
+    expected_raw_exit = (
+        trade["stop_loss"]
+        if direction == "long"
+        else trade["stop_loss"] - spread
+    )
+    assert trade["exit_raw"] == pytest.approx(expected_raw_exit)
+    assert trade["exit_raw"] != pytest.approx(close_price)
+
+
+def test_active_notebook_rejects_unknown_execution_mode():
+    run_backtest = _active_notebook_run_backtest()
+    frame = _make_timeframe_df(periods=5)
+    config = {
+        "entry": {
+            "long_condition": lambda data: pd.Series(False, index=data.index),
+            "short_condition": lambda data: pd.Series(False, index=data.index),
+        },
+        "params": {},
+    }
+
+    with pytest.raises(ValueError, match="execution_mode must be one of"):
+        run_backtest(config, frame, execution_mode="mystery")
 
 
 def test_active_notebook_inspect_path_requires_clean_export():
