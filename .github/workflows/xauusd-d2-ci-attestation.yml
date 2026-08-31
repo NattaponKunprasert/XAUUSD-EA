@@ -87,6 +87,6 @@ jobs:
         # untrusted fork PR.  Such PRs still run checks and upload input, but
         # only a repository-controlled run may create external provenance.
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/attest-build-provenance@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: d2-ci-provenance.json
