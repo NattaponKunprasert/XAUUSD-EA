@@ -1,4 +1,5 @@
 import math
+import subprocess
 import sys
 from types import FunctionType, MappingProxyType, ModuleType
 from pathlib import Path
@@ -44,6 +45,15 @@ def sealed_pathlib_module():
         elif isinstance(item, dict):
             pending.extend(item.values())
     raise AssertionError("sealed pathlib module was not reachable")
+
+
+def captured_runner_callable(name):
+    """Return a controller dependency captured before public globals exist."""
+    for cell in run_synthetic_h1_volatility_shock_d2.__closure__ or ():
+        value = cell.cell_contents
+        if isinstance(value, FunctionType) and value.__name__ == name:
+            return value
+    raise AssertionError(f"runner did not capture {name}")
 
 def exact_h1():
     raw = pd.read_csv(ROOT / "XAUUSD_H1.csv", sep="\t", skiprows=1, names=["time","open","high","low","close","volume"]).iloc[:5000]
@@ -108,26 +118,52 @@ def test_complete_5000_row_deletion_matrix_fails_exact_slice_identity():
         damaged=source.iloc[start:stop].drop(source.index[row])
         with pytest.raises(ValueError): validate_exact_d1_volatility_shock_h1_slice(damaged,name)
 
-def test_parent_ambient_pathlib_proxy_cannot_change_isolated_authoritative_result(monkeypatch):
+def test_parent_public_pathlib_proxy_cannot_change_isolated_authoritative_result(monkeypatch):
     proxy = ModuleType("pathlib")
     opened=[]
     class ProxyPath:
         def __init__(self, *args): opened.append(args)
     proxy.Path = ProxyPath
-    monkeypatch.setitem(sys.modules, "pathlib", proxy)
+    # Rebind only D2's public module global.  Replacing ``sys.modules`` makes
+    # unrelated lazy imports in pytest/subprocess observe a deliberately
+    # incomplete standard-library module, which is not a safe way to test the
+    # controller's already-captured authority graph.
+    monkeypatch.setattr(d2, "pathlib", proxy)
     baseline = run_synthetic_h1_volatility_shock_d2(bars(), cfg())
     assert run_synthetic_h1_volatility_shock_d2(bars(), cfg()) == baseline
     assert opened == []
 
-def test_parent_pathlib_attribute_mutation_cannot_change_isolated_result(monkeypatch):
-    import pathlib
-    opened=[]
-    class CachedPath:
-        def __init__(self, *args): opened.append(args)
-    monkeypatch.setattr(pathlib, "Path", CachedPath)
+def test_parent_path_authorities_are_captured_before_public_globals_can_rebind():
+    """Assert the exact captured path primitives without mutating pathlib.
+
+    Replacing ``pathlib.Path`` in-process is unsafe test instrumentation on
+    CPython: restoring the class can leave inherited implementation slots
+    malformed for pytest's own Path use on Linux.  The authority property at
+    issue is the captured callable/default graph, so inspect that graph and
+    then exercise the normal isolated execution path instead.
+    """
+    snapshots = captured_runner_callable("_parent_source_snapshots")
+    defaults = snapshots.__kwdefaults__
+    own_reader = defaults["_own_reader"]
+    evidence_digest = defaults["_evidence_digest"]
+    assert defaults["_path_type"] is Path
+    assert own_reader.__kwdefaults__["_path_type"] is Path
+    assert evidence_digest.__kwdefaults__["_path_type"] is Path
     baseline = run_synthetic_h1_volatility_shock_d2(bars(), cfg())
     assert run_synthetic_h1_volatility_shock_d2(bars(), cfg()) == baseline
-    assert opened == []
+
+
+def test_pathlib_and_subprocess_remain_usable_after_captured_path_authority_check():
+    """Regression for test isolation: pytest must retain normal Path slots."""
+    assert (ROOT / "XAUUSD_H1.csv").is_file()
+    completed = subprocess.run(
+        [sys.executable, "-c", "import pathlib; print(pathlib.Path('.').is_dir())"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert completed.stdout.strip() == "True"
 
 def test_parent_public_runner_has_no_reachable_private_engine_bundle():
     # The former in-process closure bundle was intentionally removed.  A
