@@ -79,6 +79,7 @@ def test_ci_workflow_trigger_command_and_identity_inventory_are_locked_together(
     assert all(re.fullmatch(r"[a-z0-9-]+==[^ ]+ --hash=sha256:[0-9a-f]{64}", line) for line in lock_lines)
     identities = set(module["IDENTITY_PATHS"])
     assert module["LOCK_PATH"] in identities
+    assert "config/research_v2_r3_h1_volatility_shock_d2_audit_evidence.json" in identities
     assert "tests/test_research_v2_r3_h1_volatility_shock_d2_ci_provenance.py" in identities
     for path in identities:
         if path.startswith("tests/fixtures/research_v2_r3_h1_volatility_shock_"):

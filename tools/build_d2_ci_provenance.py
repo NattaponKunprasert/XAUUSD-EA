@@ -28,10 +28,11 @@ TEST_COMMAND = (
 IDENTITY_PATHS = (
     "xauusd_ea/research_v2_volatility_shock_d2.py",
     "xauusd_ea/research_v2_volatility_shock_d1.py",
-    "xauusd_ea/baseline.py",
+    "xauusd_ea/d2_runtime_primitives.py",
     "config/xm_micro_gold.json",
     "config/research_v2_r3_h1_volatility_shock_d1_contract.json",
     "config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json",
+    "config/research_v2_r3_h1_volatility_shock_d2_audit_evidence.json",
     "tests/test_research_v2_r3_h1_volatility_shock_d1.py",
     "tests/test_research_v2_r3_h1_volatility_shock_d1_evidence_oracle.py",
     "tests/test_research_v2_r3_h1_volatility_shock_d2.py",
