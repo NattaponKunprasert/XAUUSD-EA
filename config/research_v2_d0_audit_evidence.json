@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "agenda_id": "research_program_v2_d0",
+  "audit_status": "PASS",
+  "decision": "D0_GATE_PASSED_D1_NOT_RUN",
+  "promotion_label": "research",
+  "repair_count": 1,
+  "audit_history": [
+    {
+      "stage": "builder_preliminary",
+      "result": "PENDING",
+      "terminal": "AUDIT: PENDING",
+      "findings": [],
+      "repair_cycles": 0
+    },
+    {
+      "stage": "initial_independent_audit",
+      "result": "FAIL",
+      "terminal": "AUDIT: FAIL",
+      "findings": [
+        "identity_critical_validation_dependency_not_bound",
+        "canonical_agenda_path_redirection_accepted",
+        "evidence_identity_self_authenticates_redirectable_paths"
+      ],
+      "repair_cycles": 0
+    },
+    {
+      "stage": "repair_1_builder",
+      "result": "PENDING",
+      "terminal": "AUDIT: PENDING",
+      "findings": [],
+      "repair_cycles": 1,
+      "addressed_findings": [
+        "identity_critical_validation_dependency_not_bound",
+        "canonical_agenda_path_redirection_accepted",
+        "evidence_identity_self_authenticates_redirectable_paths"
+      ]
+    },
+    {
+      "stage": "repair_1_independent_reaudit",
+      "result": "PASS",
+      "terminal": "AUDIT: PASS",
+      "findings": [],
+      "repair_cycles": 1,
+      "addressed_findings": [
+        "identity_critical_validation_dependency_not_bound",
+        "canonical_agenda_path_redirection_accepted",
+        "evidence_identity_self_authenticates_redirectable_paths"
+      ]
+    }
+  ],
+  "authorization": {
+    "basis": "explicit user approval after RESEARCH_V2_PROPOSAL.md",
+    "program": "Research Program v2",
+    "maximum_epochs": 1,
+    "maximum_rounds": 4,
+    "not_epoch4": true
+  },
+  "agenda_binding": {
+    "path": "config/research_v2_d0_agenda.json",
+    "file_sha256": "0de16daa6ac2da11bf667399b4f3c3bb40a04863a7cac4cb5a84b0be9ddc840f",
+    "canonical_contract_sha256": "bd7c5042acbf196f6bd8d362bce2622f41e17004d72816aa0ce4e514cb659ff2"
+  },
+  "proposal_binding": {
+    "path": "RESEARCH_V2_PROPOSAL.md",
+    "sha256": "c9c76b19d6d87b53b6c8c118ba60220e293dcdd27387a6b607284f60c7d66f3a"
+  },
+  "source_identities": {
+    "xauusd_ea/research_v2_agenda.py": "ebb6ae2d4d5e2e5918be6f3b5e7460668ab321bb11179e7ac95f15b8da4948f0",
+    "tests/test_research_v2_agenda.py": "e919b2472408751f695a64692d83ff636bccd030e7386adbcba62fcaa72c5d3d"
+  },
+  "notebook_definition_binding": {
+    "path": "EA_XAUUSD_29102025_Master_FIXED_V3_9_HOLDOUT_SAFE_EXACT_FORWARD (1).ipynb",
+    "definition_sha256": "26e3ffda0a979f2cca283e7333b323caca55d3a2e38f81aacdc091586668f0dc",
+    "identity_kind": "definition-only canonical AST; notebook never executed"
+  },
+  "engine_capability_identities": {
+    "xauusd_ea/baseline.py": "a0e01661805b7f96df2b1f0ba4556b5a1443c95075d74aa8a7eead4278f26529",
+    "xauusd_ea/reporting.py": "4a1af064316e4f07aecf172d070db94704dfb891f8fe70959ba86c77f462e75f",
+    "xauusd_ea/validation.py": "f40f235d1ff2c4c97013ba3d406fc311ee28620ff63d8003fb2c78c404562a5b",
+    "tests/test_validation.py": "d8238282e8d741544e595ad85c9e96156603b37ef8f417ac84665d2c9e2054fa",
+    "tests/test_m15_baseline_smoke.py": "a99b0c0ddca9fa39c786aaa6adb9401773646ef91e468c30c3073c4e82ed7c8d",
+    "tests/test_accounting_extensions.py": "91f962b928b190c87a56b07f4c5e0215977f167ac9f7c3b12866bc579b22082b",
+    "tests/test_broker_profile_runtime.py": "c0a07642f5aa4641c56d9597e962f3f533f09515340c5f77d4bc50714aac3778",
+    "tests/test_phase_e_freeze_readiness.py": "0ae22e1f7bf072ce81e5221d8a9cea122a4731303b5832b31dcf91eb6d9d6586",
+    "tests/test_notebook_definition_isolation.py": "5588ba161555e173f1e130d3495f6be94e8671e3cee5dc0fbfbc0a4f94160d60"
+  },
+  "round_ids": [
+    "v2_r1_m15_stability_first_price_structure",
+    "v2_r2_m30_regime_confirmed_direction",
+    "v2_r3_h1_volatility_shock_abstention",
+    "v2_r4_h4_cost_scaled_entry_displacement"
+  ],
+  "candidate_count": 9,
+  "seed": 42,
+  "verification": {
+    "builder_preliminary": {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -B -m pytest -q -p no:cacheprovider tests/test_research_v2_agenda.py -k 'not preliminary_evidence'",
+      "result": "18 passed, 1 deselected in 1.24s",
+      "status": "PASS"
+    },
+    "builder_final": {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -B -m pytest -q -p no:cacheprovider tests/test_research_v2_agenda.py",
+      "result": "19 passed in 1.25s",
+      "status": "PASS"
+    },
+    "repair_1_builder": {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -B -m pytest -q -p no:cacheprovider tests/test_research_v2_agenda.py tests/test_research_v2_d0_evidence_oracle.py",
+      "result": "29 passed",
+      "status": "PASS"
+    },
+    "repair_1_independent_reaudit": {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -B -m pytest -q -p no:cacheprovider tests/test_research_v2_agenda.py tests/test_research_v2_d0_evidence_oracle.py",
+      "result": "29 passed in 1.42s",
+      "status": "PASS"
+    }
+  },
+  "permitted_read_trace": [
+    "AGENTS.md",
+    ".agents/skills/builder-audit/SKILL.md",
+    "PROJECT_STATUS.md:M192 authority boundary and M193 repair state only",
+    "config/xm_micro_gold.json",
+    "RESEARCH_V2_PROPOSAL.md",
+    "XAUUSD_EA_Codex_Handoff.md:historical context only",
+    "xauusd_ea/autonomous_epoch2_agenda.py:active D0 loader pattern only",
+    "xauusd_ea/autonomous_epoch3_agenda.py:active D0 loader pattern only",
+    "tests/test_autonomous_epoch2_agenda.py:active D0 test pattern only",
+    "tests/test_autonomous_epoch2_d0_audit_evidence.py:active evidence-test pattern only",
+    "tests/test_autonomous_epoch3_agenda.py:active D0 test pattern only",
+    "config/autonomous_epoch3_research_agenda.json:active D0 schema pattern only",
+    "config/autonomous_epoch3_d0_audit_evidence.json:active evidence schema pattern only",
+    "tests/fixtures/autonomous_epoch3_d0_expected.json:active independent fixture pattern only",
+    "xauusd_ea/baseline.py",
+    "xauusd_ea/reporting.py",
+    "xauusd_ea/validation.py",
+    "tests/test_validation.py",
+    "tests/test_m15_baseline_smoke.py",
+    "tests/test_accounting_extensions.py",
+    "tests/test_broker_profile_runtime.py",
+    "tests/test_phase_e_freeze_readiness.py",
+    "tests/test_notebook_definition_isolation.py",
+    "tests/test_research_v2_d0_evidence_oracle.py:independent literal evidence oracle",
+    "EA_XAUUSD_29102025_Master_FIXED_V3_9_HOLDOUT_SAFE_EXACT_FORWARD (1).ipynb:definition-only AST inventory"
+  ],
+  "scope": {
+    "d0_runtime_proof": false,
+    "no_d1": true,
+    "no_d2": true,
+    "no_d3": true,
+    "no_market_csv_or_data": true,
+    "no_d3_reports_artifacts_or_prior_result_values": true,
+    "no_engine": true,
+    "no_holdout_forward_or_full_sample": true,
+    "no_notebook_execution": true,
+    "no_external_news_sentiment_ml_or_rl": true,
+    "no_multi_position_or_cross_timeframe_dependency": true,
+    "no_fallback_gate_weakening_threshold_outcome_repair_or_risk_optimization": true,
+    "no_operational_freeze": true,
+    "no_promotion": true,
+    "no_mql5_or_deployment": true
+  }
+}

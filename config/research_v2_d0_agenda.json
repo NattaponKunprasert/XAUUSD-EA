@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "agenda_id": "research_program_v2_d0",
+  "program_id": "research_program_v2",
+  "audit_status": "PENDING",
+  "contract_sha256": "bd7c5042acbf196f6bd8d362bce2622f41e17004d72816aa0ce4e514cb659ff2",
+  "d0_runtime_proof": false,
+  "labels": {
+    "stage": "D0_IMMUTABLE_RESEARCH_AGENDA",
+    "promotion": "research",
+    "evaluation": "agenda-only/no-data/no-engine/no-notebook-execution/no-holdout/no-forward"
+  },
+  "authorization": {
+    "basis": "explicit user approval after RESEARCH_V2_PROPOSAL.md",
+    "scope": "one Research Program v2 epoch with at most four ordered D3 rounds",
+    "does_not_inherit_epoch1_to_epoch3_authority": true,
+    "not_epoch4": true
+  },
+  "proposal_binding": {
+    "path": "RESEARCH_V2_PROPOSAL.md",
+    "sha256": "c9c76b19d6d87b53b6c8c118ba60220e293dcdd27387a6b607284f60c7d66f3a"
+  },
+  "design_authority": {
+    "controller_predeclared": true,
+    "result_independent": true,
+    "seed": 42,
+    "epoch_count": 1,
+    "maximum_rounds": 4,
+    "mechanism_source_order": [
+      "STABILITY_FIRST_PRICE_STRUCTURE",
+      "REGIME_CONFIRMED_DIRECTION",
+      "VOLATILITY_SHOCK_ABSTENTION",
+      "COST_SCALED_ENTRY_DISPLACEMENT"
+    ],
+    "timeframe_source_order": ["M15", "M30", "H1", "H4"],
+    "assignment_rule": "zip proposal mechanism source order to ascending supported single-timeframe duration; this is an implementation-simplicity rule fixed without prior outcomes",
+    "selection_inputs_excluded": [
+      "prior TEST PnL",
+      "prior TEST drawdown",
+      "prior TEST trade count",
+      "prior relative timeframe performance",
+      "holdout",
+      "forward"
+    ]
+  },
+  "broker_binding": {
+    "config_path": "config/xm_micro_gold.json",
+    "sha256": "baddca3104d70dd470545f3d211e8ca6610588531f11c53ed25e3c06f7e33457",
+    "symbol": "GOLDmicro",
+    "account_currency": "USD",
+    "contract_size": 1.0,
+    "tick_size": 0.01,
+    "tick_value_usd": 0.01,
+    "initial_capital_usd": 1000.0,
+    "minimum_lot": 0.1,
+    "maximum_lot": 100.0,
+    "lot_step": 0.01,
+    "fixed_lot": 0.1,
+    "ohlc_price_source": "Bid",
+    "execution": {
+      "long_entry": "next permitted bar open Ask",
+      "long_exit": "Bid",
+      "short_entry": "next permitted bar open Bid",
+      "short_exit": "Ask"
+    },
+    "spread_baseline_price": 0.551142857142857,
+    "spreads": [1.0, 1.5, 2.0],
+    "commission_per_lot_round_turn_usd": 0.0,
+    "fee_per_lot_round_turn_usd": 0.0,
+    "swap": "separate directional points; Wednesday triple; server-midnight cutover remains modeled assumption",
+    "position_model": "one aggregate position",
+    "intrabar_policy": "conservative same-bar stop-first"
+  },
+  "notebook_binding": {
+    "path": "EA_XAUUSD_29102025_Master_FIXED_V3_9_HOLDOUT_SAFE_EXACT_FORWARD (1).ipynb",
+    "definition_sha256": "26e3ffda0a979f2cca283e7333b323caca55d3a2e38f81aacdc091586668f0dc",
+    "definition_extractor": "canonical JSON of cell_index plus ast.dump(include_attributes=False) for top-level FunctionDef, AsyncFunctionDef, and ClassDef nodes in code cells; imports, calls, markdown, metadata, and outputs excluded; never execute"
+  },
+  "engine_capability_bindings": [
+    {"path": "xauusd_ea/baseline.py", "sha256": "a0e01661805b7f96df2b1f0ba4556b5a1443c95075d74aa8a7eead4278f26529"},
+    {"path": "xauusd_ea/reporting.py", "sha256": "4a1af064316e4f07aecf172d070db94704dfb891f8fe70959ba86c77f462e75f"},
+    {"path": "xauusd_ea/validation.py", "sha256": "f40f235d1ff2c4c97013ba3d406fc311ee28620ff63d8003fb2c78c404562a5b"},
+    {"path": "tests/test_validation.py", "sha256": "d8238282e8d741544e595ad85c9e96156603b37ef8f417ac84665d2c9e2054fa"},
+    {"path": "tests/test_m15_baseline_smoke.py", "sha256": "a99b0c0ddca9fa39c786aaa6adb9401773646ef91e468c30c3073c4e82ed7c8d"},
+    {"path": "tests/test_accounting_extensions.py", "sha256": "91f962b928b190c87a56b07f4c5e0215977f167ac9f7c3b12866bc579b22082b"},
+    {"path": "tests/test_broker_profile_runtime.py", "sha256": "c0a07642f5aa4641c56d9597e962f3f533f09515340c5f77d4bc50714aac3778"},
+    {"path": "tests/test_phase_e_freeze_readiness.py", "sha256": "0ae22e1f7bf072ce81e5221d8a9cea122a4731303b5832b31dcf91eb6d9d6586"},
+    {"path": "tests/test_notebook_definition_isolation.py", "sha256": "5588ba161555e173f1e130d3495f6be94e8671e3cee5dc0fbfbc0a4f94160d60"}
+  ],
+  "rounds": [
+    {
+      "agenda_order": 1,
+      "round_id": "v2_r1_m15_stability_first_price_structure",
+      "mechanism": "STABILITY_FIRST_PRICE_STRUCTURE",
+      "timeframe": "M15",
+      "assignment_rationale": "The one-previous-bar price-structure comparison has the shortest dependency and is assigned first to the shortest supported duration by implementation simplicity only.",
+      "data_prefix": {"path": "XAUUSD_M15.csv", "selection": "header plus first 5000 data rows", "data_rows": 5000, "identity": "D1 must authenticate one bounded read with exact raw and canonical hashes, row indices, timestamps, timezone, dtypes, and complete prefix endpoint before D2 or D3"},
+      "signal": {
+        "inputs": ["Bid high", "Bid low", "Bid close"],
+        "first_eligible_closed_bar_index": 1,
+        "long": "close[t] > high[t-1]",
+        "short": "close[t] < low[t-1]",
+        "no_signal": "otherwise; also no signal for nonfinite dependencies or invalid OHLC",
+        "symmetry": "replace price with its sign-inverted series and swap high/low to exchange long and short",
+        "equality": "strict comparisons; equality is no signal"
+      }
+    },
+    {
+      "agenda_order": 2,
+      "round_id": "v2_r2_m30_regime_confirmed_direction",
+      "mechanism": "REGIME_CONFIRMED_DIRECTION",
+      "timeframe": "M30",
+      "assignment_rationale": "The fixed 20-bar mean adds one rolling regime dependency and is assigned second to the next supported duration by implementation simplicity only.",
+      "data_prefix": {"path": "XAUUSD_M30.csv", "selection": "header plus first 5000 data rows", "data_rows": 5000, "identity": "D1 must authenticate one bounded read with exact raw and canonical hashes, row indices, timestamps, timezone, dtypes, and complete prefix endpoint before D2 or D3"},
+      "signal": {
+        "inputs": ["Bid close"],
+        "definition": "sma20[t] = arithmetic mean(close[t-19:t+1]) over exactly 20 finite fully closed bars",
+        "first_eligible_closed_bar_index": 19,
+        "long": "close[t] > sma20[t] and close[t] > close[t-1]",
+        "short": "close[t] < sma20[t] and close[t] < close[t-1]",
+        "no_signal": "otherwise; also no signal for any nonfinite dependency",
+        "symmetry": "sign inversion of every close exchanges long and short",
+        "equality": "strict comparisons; equality in either clause is no signal"
+      }
+    },
+    {
+      "agenda_order": 3,
+      "round_id": "v2_r3_h1_volatility_shock_abstention",
+      "mechanism": "VOLATILITY_SHOCK_ABSTENTION",
+      "timeframe": "H1",
+      "assignment_rationale": "The prior-14-TR reference adds a second rolling state and is assigned third to the next supported duration by implementation simplicity only.",
+      "data_prefix": {"path": "XAUUSD_H1.csv", "selection": "header plus first 5000 data rows", "data_rows": 5000, "identity": "D1 must authenticate one bounded read with exact raw and canonical hashes, row indices, timestamps, timezone, dtypes, and complete prefix endpoint before D2 or D3"},
+      "signal": {
+        "inputs": ["Bid open", "Bid high", "Bid low", "Bid close"],
+        "definition": "TR[i] = max(high[i]-low[i], abs(high[i]-close[i-1]), abs(low[i]-close[i-1])) for i>=1; reference_atr14[t] = arithmetic mean(TR[t-14:t]) using exactly the 14 TR values strictly before t",
+        "shock_rule": "abstain when TR[t] >= 2.0 * reference_atr14[t]",
+        "first_eligible_closed_bar_index": 15,
+        "long": "TR[t] < 2.0 * reference_atr14[t] and close[t] > open[t]",
+        "short": "TR[t] < 2.0 * reference_atr14[t] and close[t] < open[t]",
+        "no_signal": "otherwise; also no signal for nonfinite dependencies, invalid OHLC, or reference_atr14[t] <= 0",
+        "symmetry": "sign inversion with high/low swapped exchanges long and short while preserving TR and abstention",
+        "equality": "shock-threshold equality abstains; open/close equality is no signal"
+      }
+    },
+    {
+      "agenda_order": 4,
+      "round_id": "v2_r4_h4_cost_scaled_entry_displacement",
+      "mechanism": "COST_SCALED_ENTRY_DISPLACEMENT",
+      "timeframe": "H4",
+      "assignment_rationale": "Absolute close displacement versus the largest configured spread multiplier is naturally evaluated on the longest supported duration and is assigned fourth without outcome evidence.",
+      "data_prefix": {"path": "XAUUSD_H4.csv", "selection": "header plus first 5000 data rows", "data_rows": 5000, "identity": "D1 must authenticate one bounded read with exact raw and canonical hashes, row indices, timestamps, timezone, dtypes, and complete prefix endpoint before D2 or D3"},
+      "signal": {
+        "inputs": ["Bid close", "configured spread_baseline_price", "configured maximum spread multiplier"],
+        "definition": "cost_threshold = broker_binding.spread_baseline_price * max(broker_binding.spreads) = 0.551142857142857 * 2.0; displacement[t] = close[t]-close[t-1]",
+        "first_eligible_closed_bar_index": 1,
+        "long": "displacement[t] > cost_threshold",
+        "short": "displacement[t] < -cost_threshold",
+        "no_signal": "otherwise; also no signal for nonfinite dependencies",
+        "symmetry": "sign inversion of every close exchanges long and short and preserves the positive configured cost threshold",
+        "equality": "strict comparisons; equality at either threshold is no signal"
+      }
+    }
+  ],
+  "shared_d1_to_d3": {
+    "runtime": {
+      "signal_scope": "single timeframe; only fully closed Bid bars through t",
+      "signal_to_execution": "signal at close[t], execute only at next permitted bar t+1 open: long Ask; short Bid",
+      "atr_period": 14,
+      "fixed_lot": 0.1,
+      "direction": "both",
+      "one_aggregate_position": true,
+      "exits": "ATR14 stop and RR target; conservative same-bar stop-first; forced final close",
+      "costs": "authoritative baseline and stress spreads; separate directional swap with Wednesday triple; zero commission and fee",
+      "accounting": "realized cash plus floating marked equity; peak-equity drawdown fraction",
+      "invalid_indicator": "NaN/no signal"
+    },
+    "candidate_package": {
+      "order": "atr_multiplier outer then rr inner",
+      "atr_multipliers": [1.0, 1.5, 2.0],
+      "rr": [1.0, 1.5, 2.0],
+      "count": 9
+    },
+    "d1_data_derivation_rule": {
+      "authority": "the round's exact single-timeframe path and header-plus-5000-row prefix; D1 must independently authenticate before any execution",
+      "N": 5000,
+      "q": 1000,
+      "fold_anchor": "row0",
+      "folds": [
+        {"fold": 1, "train": "[0,2000)", "test": "[2000,3000)"},
+        {"fold": 2, "train": "[1000,3000)", "test": "[3000,4000)"},
+        {"fold": 3, "train": "[2000,4000)", "test": "[4000,5000)"}
+      ],
+      "requirements": "exactly three chronological folds; each train/test contiguous, immediate, non-overlapping; reject missing rows, gaps, duplicates, reorder, overlap, off-by-one, path/timestamp/timezone/dtype/hash drift, or post-outcome change"
+    },
+    "d3_evaluation_counts": {
+      "train": "9 candidates * 3 spreads * 3 folds",
+      "train_evaluations": 81,
+      "test": "1 frozen TRAIN selection * 3 spreads * 3 folds",
+      "test_evaluations": 9,
+      "test_policy": "immediate unranked TEST after freezing each fold identity; TEST may only decide terminal strict pass/fail"
+    },
+    "d3_gates": {
+      "complete_selected_folds": 3,
+      "same_candidate_id": true,
+      "same_base_config_fingerprint": true,
+      "minimum_baseline_spread_test_trade_count": 20,
+      "every_individual_test_net_pnl_strictly_positive": true,
+      "maximum_test_drawdown_fraction": 0.02,
+      "positive_aggregate_test_net_pnl_each_spread": [1.0, 1.5, 2.0],
+      "selection": "TRAIN only: adequate iff at least one completed trade at every TRAIN spread; maximize worst-spread TRAIN net PnL, minimize worst TRAIN drawdown fraction, then source order; freeze identity only for immediate unranked TEST",
+      "terminal": "strict failure => NO_FREEZE_CANDIDATE; strict pass => FREEZE_READY and stop for explicit user decision"
+    }
+  },
+  "stop_rules": [
+    "stop before D1 unless this D0 ends independent AUDIT: PASS",
+    "stop on any agenda, proposal, source, broker, notebook-definition, data-prefix, chronology, accounting, or report-identity mismatch; do not salvage a candidate",
+    "stop each round before D3 unless its D1 and D2 each end independent AUDIT: PASS",
+    "FREEZE_READY stops the program immediately for a new explicit user decision; no automatic holdout, forward, operational freeze, promotion, MQL5, or deployment",
+    "NO_FREEZE_CANDIDATE may continue only to the next predeclared round without TEST-driven formula, threshold, candidate, risk, order, or timeframe repair",
+    "stop after four D3 rounds or one v2 epoch, whichever comes first; no automatic second v2 epoch",
+    "stop immediately on holdout, forward, full-sample fallback, cross-timeframe selection, external/news/sentiment/ML/RL input, multi-position behavior, risk-envelope change, or TEST-driven generation/tuning/ranking/repair"
+  ],
+  "prohibitions": {
+    "no_market_data_d0": true,
+    "no_csv_read_d0": true,
+    "no_engine_d0": true,
+    "no_notebook_execution": true,
+    "no_d3_reports_or_outcomes_d0": true,
+    "no_prior_result_values_d0": true,
+    "no_holdout": true,
+    "no_forward": true,
+    "no_full_sample_fallback": true,
+    "no_external_data": true,
+    "no_news_or_sentiment": true,
+    "no_ml_or_rl": true,
+    "no_cross_timeframe_dependency": true,
+    "no_multi_position": true,
+    "no_martingale_grid_or_averaging_down": true,
+    "no_gate_weakening": true,
+    "no_threshold_or_outcome_repair": true,
+    "no_risk_optimization": true,
+    "no_operational_freeze": true,
+    "no_promotion": true,
+    "no_mql5_or_deployment": true
+  },
+  "permitted_loader_read_trace": [
+    "config/research_v2_d0_agenda.json",
+    "RESEARCH_V2_PROPOSAL.md",
+    "config/xm_micro_gold.json",
+    "EA_XAUUSD_29102025_Master_FIXED_V3_9_HOLDOUT_SAFE_EXACT_FORWARD (1).ipynb",
+    "xauusd_ea/baseline.py",
+    "xauusd_ea/reporting.py",
+    "xauusd_ea/validation.py",
+    "tests/test_validation.py",
+    "tests/test_m15_baseline_smoke.py",
+    "tests/test_accounting_extensions.py",
+    "tests/test_broker_profile_runtime.py",
+    "tests/test_phase_e_freeze_readiness.py",
+    "tests/test_notebook_definition_isolation.py"
+  ],
+  "staged_fail_closed_order": [
+    "agenda JSON decode plus exact recursive schema and semantic validation",
+    "independent literal canonical agenda SHA-256",
+    "approved proposal byte SHA-256",
+    "verified broker byte SHA-256 and authoritative constants",
+    "notebook definition-only AST identity without execution",
+    "approved capability source/test byte identities",
+    "deep immutable return"
+  ]
+}

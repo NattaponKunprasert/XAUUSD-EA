@@ -15,6 +15,11 @@ PINS = {
     "actions/upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02",
     "actions/attest": "1e69f48acb82d1966a394da916b4c1698aa569d6",
 }
+REQUIRED_TRACKED_AUTHORITIES = {
+    "config/research_v2_d0_agenda.json",
+    "config/research_v2_d0_audit_evidence.json",
+    "config/research_v2_r2_m30_regime_direction_d3_audit_evidence.json",
+}
 
 
 def _build(output: Path) -> None:
@@ -79,6 +84,7 @@ def test_ci_workflow_trigger_command_and_identity_inventory_are_locked_together(
     assert all(re.fullmatch(r"[a-z0-9-]+==[^ ]+ --hash=sha256:[0-9a-f]{64}", line) for line in lock_lines)
     identities = set(module["IDENTITY_PATHS"])
     assert module["LOCK_PATH"] in identities
+    assert REQUIRED_TRACKED_AUTHORITIES <= identities
     assert "config/research_v2_r3_h1_volatility_shock_d2_audit_evidence.json" in identities
     assert "tests/test_research_v2_r3_h1_volatility_shock_d2_ci_provenance.py" in identities
     for path in identities:
@@ -86,7 +92,21 @@ def test_ci_workflow_trigger_command_and_identity_inventory_are_locked_together(
             assert "tests/fixtures/research_v2_r3_h1_volatility_shock_*" in source
         else:
             assert path in source
-    for path in module["TEST_COMMAND"].split():
-        if path.startswith("tests/"):
-            assert path in source
-    assert "tests/test_research_v2_r3_h1_volatility_shock_d2_ci_provenance.py" in source
+    workflow_command = re.search(
+        r"(python -B -m pytest -q --cache-clear.*?)\n\s*- name:", source, re.DOTALL
+    )
+    assert workflow_command is not None
+    assert " ".join(workflow_command.group(1).split()) == " ".join(module["TEST_COMMAND"].split())
+
+
+def test_required_d1_prior_authorities_are_versioned_not_only_local_files():
+    completed = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "--", *sorted(REQUIRED_TRACKED_AUTHORITIES)],
+        cwd=ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert set(completed.stdout.splitlines()) == REQUIRED_TRACKED_AUTHORITIES

@@ -19,6 +19,7 @@ WORKFLOW_PATH = ".github/workflows/xauusd-d2-ci-attestation.yml"
 LOCK_PATH = "config/d2_ci_requirements.lock"
 TEST_COMMAND = (
     "python -B -m pytest -q --cache-clear "
+    "tests/test_research_v2_r3_h1_volatility_shock_d2_ci_provenance.py "
     "tests/test_research_v2_r3_h1_volatility_shock_d1.py "
     "tests/test_research_v2_r3_h1_volatility_shock_d1_evidence_oracle.py "
     "tests/test_research_v2_r3_h1_volatility_shock_d2.py "
@@ -30,6 +31,12 @@ IDENTITY_PATHS = (
     "xauusd_ea/research_v2_volatility_shock_d1.py",
     "xauusd_ea/d2_runtime_primitives.py",
     "config/xm_micro_gold.json",
+    # D1 authenticates these fixed prior-stage records before it can bind the
+    # H1 prefix.  CI must version their exact bytes rather than accidentally
+    # inheriting them from an otherwise unrelated local research worktree.
+    "config/research_v2_d0_agenda.json",
+    "config/research_v2_d0_audit_evidence.json",
+    "config/research_v2_r2_m30_regime_direction_d3_audit_evidence.json",
     "config/research_v2_r3_h1_volatility_shock_d1_contract.json",
     "config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json",
     "config/research_v2_r3_h1_volatility_shock_d2_audit_evidence.json",
