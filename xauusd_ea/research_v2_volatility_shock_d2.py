@@ -33,14 +33,14 @@ import pandas as pd
 _ROOT_TEXT = str(Path(__file__).resolve().parents[1])
 _D2_SOURCE_TEXT = str(Path(__file__).resolve())
 _AUTHORITY = (
-    ("config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json", "06ad8d39020a26f73f48b415908855773f4ed572e56fd9daa092a99149ecce1a"),
-    ("config/research_v2_r3_h1_volatility_shock_d1_contract.json", "3f2cc2a71265f28556b4511a60488ca2a5f0a6066ca11e89c3ddfd072ed5d0fc"),
+    ("config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json", "d1c1eaa5d3cff8fada7de349d7fcd83f642330a65be85b4cf3adc4ef107cfb48"),
+    ("config/research_v2_r3_h1_volatility_shock_d1_contract.json", "f20900e1737734700f6802c8e47f43c033e38df6605cbd4f85841f9d40023ead"),
     ("config/xm_micro_gold.json", "4a7a6ab6116dd0368e2028493e3f1e646d10e60c78d926fea8f48a9e3e46c45b"),
     ("xauusd_ea/d2_runtime_primitives.py", "a7aa0474337fc108f71fe063ac3365df542eb9922077a40efca44d2c95296dab"),
-    ("xauusd_ea/research_v2_volatility_shock_d1.py", "a3147fa4995b92fa3bff0c53cfbf76741bdc469e2cdbb4d2a65bc89b36e0aa0c"),
-    ("tests/test_research_v2_r3_h1_volatility_shock_d1.py", "28301553298a7e7bbf8bd83fe82d8b8f4318c4f2b9c0ede3be8278c5a6974121"),
+    ("xauusd_ea/research_v2_volatility_shock_d1.py", "dcde04f027380053494c5d775a4438ad46ee92fa4abb689a79ba58590bb20e6d"),
+    ("tests/test_research_v2_r3_h1_volatility_shock_d1.py", "9e5fe30abfda97c4329ac6c0096a89ccb662efda9cfe725061795df2c6ddd3f7"),
 )
-_D1_CANONICAL_SHA = "869a167f72ab1f1a977deecc2c6eb26fcde0cbb65c1040917df4521130688625"
+_D1_CANONICAL_SHA = "2ee52511b28ebd956e35188e11e97d8351d02047d070873485e0219df8bd1164"
 
 
 def _make_sealed_d2():
@@ -235,7 +235,11 @@ def _make_sealed_d2():
             raise error("Volatility Shock D2 H1 unavailable") from exc
         if (after.st_dev, after.st_ino, after.st_size) != (before.st_dev, before.st_ino, before.st_size):
             raise error("Volatility Shock D2 H1 descriptor TOCTOU drift")
-        snapshot = b"".join(lines)
+        # Authenticate the same bounded Git-LF prefix as D1.  Physical reads
+        # remain fixed; only a CRLF checkout representation is normalized.
+        snapshot = b"".join(lines).replace(b"\r\n", b"\n")
+        if b"\r" in snapshot:
+            raise error("Volatility Shock D2 H1 prefix newline drift")
         if (len(snapshot), sha256(snapshot).hexdigest(), lines[0].decode("ascii").strip()) != (prefix["prefix_snapshot_bytes"], prefix["prefix_snapshot_sha256"], "Time,Open,High,Low,Close,Volume"):
             raise error("Volatility Shock D2 H1 prefix identity drift")
         proof = {"rows": 5000, "raw_sha256": sha256(snapshot).hexdigest()}

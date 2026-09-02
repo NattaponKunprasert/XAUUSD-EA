@@ -17,8 +17,8 @@ from typing import Any, Iterable, Sequence
 
 
 CONTRACT_PATH = "config/research_v2_r3_h1_volatility_shock_d1_contract.json"
-EXPECTED_CONTRACT_SHA256 = "869a167f72ab1f1a977deecc2c6eb26fcde0cbb65c1040917df4521130688625"
-_CONTRACT_FILE_SHA256 = "3f2cc2a71265f28556b4511a60488ca2a5f0a6066ca11e89c3ddfd072ed5d0fc"
+EXPECTED_CONTRACT_SHA256 = "2ee52511b28ebd956e35188e11e97d8351d02047d070873485e0219df8bd1164"
+_CONTRACT_FILE_SHA256 = "f20900e1737734700f6802c8e47f43c033e38df6605cbd4f85841f9d40023ead"
 _D0_EVIDENCE = ("config/research_v2_d0_audit_evidence.json", "2923817be7c360abbd8abdaa9605b650afb16bfdde2f6e30bc38c5ea19422428")
 _AGENDA = ("config/research_v2_d0_agenda.json", "0de16daa6ac2da11bf667399b4f3c3bb40a04863a7cac4cb5a84b0be9ddc840f", "bd7c5042acbf196f6bd8d362bce2622f41e17004d72816aa0ce4e514cb659ff2")
 _ROUND2 = ("config/research_v2_r2_m30_regime_direction_d3_audit_evidence.json", "75f219700f3f6d040268af3c3c33c3abc5c947091a370d8953b339c978fb2bff")
@@ -198,8 +198,8 @@ def _make_h1_prefix_attestor() -> Any:
     """
     authority = MappingProxyType({
         "source_path": "XAUUSD_H1.csv", "rows": 5000, "readline_calls": 5001,
-        "raw_header_bytes": 33, "prefix_snapshot_bytes": 273365,
-        "prefix_snapshot_sha256": "9f05df5271b6ad74e2c15064569d2cf9e853bf8b69c9db521fe44af7da6cc942",
+        "raw_header_bytes": 32, "prefix_snapshot_bytes": 268364,
+        "prefix_snapshot_sha256": "9c3f91e7ec1df8e7b778a797f754c368b8e76a28231480ca616632658e04ecb9",
         "canonical_ohlcv_sha256": "0bb8b073705249dbc5be46d2250b6b08a6a8f6a5dc21336eeee0b2d828f6ea69",
         "timestamp_sequence_sha256": "0532730fa58c2087cc37b428ee5b8e8799a51d3137e5c0739c059adf49ce6f48",
         "first_timestamp": "2023-01-03T01:00:00", "last_timestamp": "2023-11-03T20:00:00",
@@ -252,8 +252,12 @@ def _make_h1_prefix_attestor() -> Any:
                     lines.append(line)
         except os_error as exc:
             raise value_error("v2 volatility shock D1 H1 unavailable") from exc
-        snapshot = b"".join(lines)
-        if len(lines[0]) != authority["raw_header_bytes"] or len(snapshot) != authority["prefix_snapshot_bytes"] or sha256(snapshot).hexdigest() != authority["prefix_snapshot_sha256"]:
+        # Newline representation varies by checkout: authenticate Git-LF
+        # content after exactly the declared physical prefix reads.
+        snapshot = b"".join(lines).replace(b"\r\n", b"\n")
+        if b"\r" in snapshot:
+            raise value_error("v2 volatility shock D1 H1 prefix newline drift")
+        if len(lines[0].replace(b"\r\n", b"\n")) != authority["raw_header_bytes"] or len(snapshot) != authority["prefix_snapshot_bytes"] or sha256(snapshot).hexdigest() != authority["prefix_snapshot_sha256"]:
             raise value_error("v2 volatility shock D1 H1 prefix identity drift")
         if lines[0].decode("ascii").strip() != "Time,Open,High,Low,Close,Volume":
             raise value_error("v2 volatility shock D1 H1 header drift")

@@ -52,7 +52,7 @@ def test_broker_raw_identity_is_the_git_lf_bytes_not_a_local_autocrlf_variant():
 def test_git_lf_broker_identity_inventory_is_scoped_to_the_r3_d1_d2_authorities():
     legacy_raw_sha = "baddca3104d70dd470545f3d211e8ca6610588531f11c53ed25e3c06f7e33457"
     git_lf_sha = "4a7a6ab6116dd0368e2028493e3f1e646d10e60c78d926fea8f48a9e3e46c45b"
-    contract_sha = "869a167f72ab1f1a977deecc2c6eb26fcde0cbb65c1040917df4521130688625"
+    contract_sha = "2ee52511b28ebd956e35188e11e97d8351d02047d070873485e0219df8bd1164"
     authority_literals = {
         "config/research_v2_r3_h1_volatility_shock_d1_contract.json": (git_lf_sha,),
         # D1 source authenticates the contract, rather than duplicating the
@@ -67,6 +67,17 @@ def test_git_lf_broker_identity_inventory_is_scoped_to_the_r3_d1_d2_authorities(
     for relative, literals in authority_literals.items():
         assert all(literal in authority_text[relative] for literal in literals)
     assert not (ROOT / ".gitattributes").exists()
+
+
+def test_h1_prefix_raw_identity_is_git_lf_bytes_not_local_autocrlf_variant():
+    source = ROOT / "XAUUSD_H1.csv"
+    with source.open("rb") as handle:
+        local_prefix = b"".join(handle.readline() for _ in range(5001))
+    git_lf_prefix = local_prefix.replace(b"\r\n", b"\n")
+    expected = "9c3f91e7ec1df8e7b778a797f754c368b8e76a28231480ca616632658e04ecb9"
+    assert hashlib.sha256(git_lf_prefix).hexdigest() == expected
+    assert b"\r" not in git_lf_prefix
+    assert len(git_lf_prefix) == 268364
 
 
 def test_authenticated_bounded_h1_prefix_is_exact_and_has_no_tail_read(monkeypatch):
@@ -141,7 +152,7 @@ def test_rebound_public_helpers_cannot_redirect_private_h1_attestation(monkeypat
     contract = module.load_research_v2_r3_h1_volatility_shock_d1(ROOT)
     monkeypatch.setattr(module, binding, replacement)
     result = module.attest_h1_prefix(ROOT, contract)
-    assert result["rows"] == 5000 and result["raw_sha256"] == "9f05df5271b6ad74e2c15064569d2cf9e853bf8b69c9db521fe44af7da6cc942"
+    assert result["rows"] == 5000 and result["raw_sha256"] == "9c3f91e7ec1df8e7b778a797f754c368b8e76a28231480ca616632658e04ecb9"
 
 
 def test_h1_redirect_and_contract_drift_fail_closed(tmp_path):

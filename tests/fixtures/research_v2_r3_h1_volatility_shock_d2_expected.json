@@ -6,14 +6,14 @@
   "promotion_label": "research",
   "scope": {"synthetic_h1_only": true, "no_d3": true, "no_candidates": true, "no_selection": true, "no_test_holdout_forward_or_full_sample": true, "no_notebook_execution": true, "no_mql5_or_promotion": true},
   "bindings": {
-    "d1_evidence": {"path": "config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json", "sha256": "06ad8d39020a26f73f48b415908855773f4ed572e56fd9daa092a99149ecce1a", "decision": "D1_GATE_PASSED_D2_NOT_RUN", "audit_terminal": "AUDIT: PASS"},
-    "d1_contract": {"path": "config/research_v2_r3_h1_volatility_shock_d1_contract.json", "file_sha256": "3f2cc2a71265f28556b4511a60488ca2a5f0a6066ca11e89c3ddfd072ed5d0fc", "canonical_sha256": "869a167f72ab1f1a977deecc2c6eb26fcde0cbb65c1040917df4521130688625"},
-    "source": {"path": "xauusd_ea/research_v2_volatility_shock_d2.py", "sha256": "979e84583b7a5a6db7acc7195e684993607b69d8bb085373c04e2ffeb7421334"},
+    "d1_evidence": {"path": "config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json", "sha256": "d1c1eaa5d3cff8fada7de349d7fcd83f642330a65be85b4cf3adc4ef107cfb48", "decision": "D1_GATE_PASSED_D2_NOT_RUN", "audit_terminal": "AUDIT: PASS"},
+    "d1_contract": {"path": "config/research_v2_r3_h1_volatility_shock_d1_contract.json", "file_sha256": "f20900e1737734700f6802c8e47f43c033e38df6605cbd4f85841f9d40023ead", "canonical_sha256": "2ee52511b28ebd956e35188e11e97d8351d02047d070873485e0219df8bd1164"},
+    "source": {"path": "xauusd_ea/research_v2_volatility_shock_d2.py", "sha256": "1303d57b7c50c4e0cfd3b6d5b52414ec837328ee2de6925bad3687fc6d0ba828"},
     "test": {"path": "tests/test_research_v2_r3_h1_volatility_shock_d2.py", "sha256": "908bab7a5dabd07472bf6576615f87f02ec1aead857e70747db8b55ea9d96967"},
     "broker": {"path": "config/xm_micro_gold.json", "sha256": "4a7a6ab6116dd0368e2028493e3f1e646d10e60c78d926fea8f48a9e3e46c45b", "symbol": "GOLDmicro", "contract_size": 1.0},
     "runtime": {"path": "xauusd_ea/d2_runtime_primitives.py", "sha256": "a7aa0474337fc108f71fe063ac3365df542eb9922077a40efca44d2c95296dab"}
   },
   "runtime": {"timeframe": "H1", "signal_to_execution": "closed bar t to next H1 open t+1", "atr_period": 14, "fixed_lot": 0.1, "spreads": [1.0,1.5,2.0], "exits": "ATR14 stop/RR target; conservative stop-first; forced final close", "costs": "Bid OHLC; long Ask/Bid, short Bid/Ask; zero fees; directional Wednesday-triple swap", "accounting": "realized plus floating equity; peak-relative drawdown; one aggregate position", "isolated_worker_boundary": "parent snapshots exact D2/D1/runtime/config authorities once and sends bytes by stdin to two fresh python -I -B workers with distinct mode/nonce/PID envelopes; child never reopens passed source paths and only descriptor-reads authenticated H1"},
-  "data_binding": {"source_path": "XAUUSD_H1.csv", "rows": 5000, "raw_sha256": "9f05df5271b6ad74e2c15064569d2cf9e853bf8b69c9db521fe44af7da6cc942", "canonical_sha256": "0bb8b073705249dbc5be46d2250b6b08a6a8f6a5dc21336eeee0b2d828f6ea69", "folds": ["[0,2000)/[2000,3000)","[1000,3000)/[3000,4000)","[2000,4000)/[4000,5000)"]},
+  "data_binding": {"source_path": "XAUUSD_H1.csv", "rows": 5000, "raw_sha256": "9c3f91e7ec1df8e7b778a797f754c368b8e76a28231480ca616632658e04ecb9", "canonical_sha256": "0bb8b073705249dbc5be46d2250b6b08a6a8f6a5dc21336eeee0b2d828f6ea69", "folds": ["[0,2000)/[2000,3000)","[1000,3000)/[3000,4000)","[2000,4000)/[4000,5000)"]},
   "m211_verification": {"builder_focused": "pending cache-free hermetic-worker D2 + oracle verification", "result": "PENDING", "scope": "H1 D2 correctness only; no D3, candidates, selection, TEST, holdout, forward, notebook, MQL5, freeze, promotion, or full optimization"}
 }
