@@ -39,6 +39,36 @@ def test_contract_and_authority_loader_are_immutable_and_no_market_data_read(mon
     with pytest.raises(TypeError): loaded["family"]["timeframe"] = "M15"
 
 
+def test_broker_raw_identity_is_the_git_lf_bytes_not_a_local_autocrlf_variant():
+    broker = ROOT / "config/xm_micro_gold.json"
+    expected = "4a7a6ab6116dd0368e2028493e3f1e646d10e60c78d926fea8f48a9e3e46c45b"
+    raw = broker.read_bytes()
+    git_lf = raw.replace(b"\r\n", b"\n")
+    assert hashlib.sha256(git_lf).hexdigest() == expected
+    assert b"\r" not in git_lf
+    assert json.loads(raw) == json.loads(git_lf)
+
+
+def test_git_lf_broker_identity_inventory_is_scoped_to_the_r3_d1_d2_authorities():
+    legacy_raw_sha = "baddca3104d70dd470545f3d211e8ca6610588531f11c53ed25e3c06f7e33457"
+    git_lf_sha = "4a7a6ab6116dd0368e2028493e3f1e646d10e60c78d926fea8f48a9e3e46c45b"
+    contract_sha = "869a167f72ab1f1a977deecc2c6eb26fcde0cbb65c1040917df4521130688625"
+    authority_literals = {
+        "config/research_v2_r3_h1_volatility_shock_d1_contract.json": (git_lf_sha,),
+        # D1 source authenticates the contract, rather than duplicating the
+        # broker digest.  Its authority literal is therefore the contract ID.
+        "xauusd_ea/research_v2_volatility_shock_d1.py": (contract_sha,),
+        "xauusd_ea/research_v2_volatility_shock_d2.py": (git_lf_sha, contract_sha),
+        "config/research_v2_r3_h1_volatility_shock_d2_audit_evidence.json": (git_lf_sha,),
+        "tests/fixtures/research_v2_r3_h1_volatility_shock_d2_expected.json": (git_lf_sha,),
+    }
+    authority_text = {relative: (ROOT / relative).read_text(encoding="utf-8") for relative in authority_literals}
+    assert all(legacy_raw_sha not in text for text in authority_text.values())
+    for relative, literals in authority_literals.items():
+        assert all(literal in authority_text[relative] for literal in literals)
+    assert not (ROOT / ".gitattributes").exists()
+
+
 def test_authenticated_bounded_h1_prefix_is_exact_and_has_no_tail_read(monkeypatch):
     contract = module.load_research_v2_r3_h1_volatility_shock_d1(ROOT)
     calls, original = [], Path.open

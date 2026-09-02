@@ -17,8 +17,8 @@ from typing import Any, Iterable, Sequence
 
 
 CONTRACT_PATH = "config/research_v2_r3_h1_volatility_shock_d1_contract.json"
-EXPECTED_CONTRACT_SHA256 = "9cfc1c6a8e6eab02b0960067b86411b24741614958c88a0b76de95cc34c47452"
-_CONTRACT_FILE_SHA256 = "2b6b83bbb7b07d566acffbdb852d48bd1cfc629085a8bd936b1fc500999b4963"
+EXPECTED_CONTRACT_SHA256 = "869a167f72ab1f1a977deecc2c6eb26fcde0cbb65c1040917df4521130688625"
+_CONTRACT_FILE_SHA256 = "3f2cc2a71265f28556b4511a60488ca2a5f0a6066ca11e89c3ddfd072ed5d0fc"
 _D0_EVIDENCE = ("config/research_v2_d0_audit_evidence.json", "2923817be7c360abbd8abdaa9605b650afb16bfdde2f6e30bc38c5ea19422428")
 _AGENDA = ("config/research_v2_d0_agenda.json", "0de16daa6ac2da11bf667399b4f3c3bb40a04863a7cac4cb5a84b0be9ddc840f", "bd7c5042acbf196f6bd8d362bce2622f41e17004d72816aa0ce4e514cb659ff2")
 _ROUND2 = ("config/research_v2_r2_m30_regime_direction_d3_audit_evidence.json", "75f219700f3f6d040268af3c3c33c3abc5c947091a370d8953b339c978fb2bff")
@@ -61,6 +61,21 @@ def _read_exact(root: Path, relative: str, expected: str, label: str) -> bytes:
     if hashlib.sha256(data).hexdigest() != expected:
         raise ValueError(f"v2 volatility shock D1 {label} identity drift")
     return data
+
+
+def _read_git_lf_exact(root: Path, relative: str, expected: str, label: str) -> bytes:
+    """Bind the broker profile to its Git-LF content, not checkout EOLs."""
+    path = root / relative
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"v2 volatility shock D1 {label} canonical path drift")
+    try:
+        data = path.read_bytes()
+    except OSError as exc:
+        raise ValueError(f"v2 volatility shock D1 {label} unavailable") from exc
+    canonical = data.replace(b"\r\n", b"\n")
+    if b"\r" in canonical or hashlib.sha256(canonical).hexdigest() != expected:
+        raise ValueError(f"v2 volatility shock D1 {label} identity drift")
+    return canonical
 
 
 def _validate_contract(contract: dict[str, Any]) -> None:
@@ -117,7 +132,7 @@ def load_research_v2_r3_h1_volatility_shock_d1(project_root: str | Path, *, cont
     if (round2.get("audit_status"), round2.get("promotion_label"), round2.get("scope", {}).get("v2_round2_complete")) != ("PASS", "research", True):
         raise ValueError("v2 volatility shock D1 Round2 sequencing drift")
     broker = contract["broker_binding"]
-    profile = json.loads(_read_exact(root, broker["config_path"], broker["sha256"], "broker"))
+    profile = json.loads(_read_git_lf_exact(root, broker["config_path"], broker["sha256"], "broker"))
     if (profile.get("symbol"), profile.get("contract_size"), profile.get("ohlc_price_source"), profile.get("commission_per_lot_round_turn_usd"), profile.get("fee_per_lot_round_turn_usd")) != ("GOLDmicro", 1.0, "bid", 0.0, 0.0):
         raise ValueError("v2 volatility shock D1 broker drift")
     return _freeze(contract)

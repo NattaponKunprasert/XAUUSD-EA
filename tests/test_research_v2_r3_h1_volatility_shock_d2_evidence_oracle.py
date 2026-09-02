@@ -14,9 +14,13 @@ def test_m211_pending_evidence_fixture_live_bindings_and_swap_oracle_are_exact()
     assert (evidence["audit_status"], evidence["decision"], evidence["promotion_label"]) == (
         "PENDING_AUDIT", "D2_M211_HERMETIC_COORDINATOR_PENDING_AUDIT_D3_NOT_RUN", "research"
     )
-    for name in ("source", "test", "broker", "runtime"):
+    for name in ("source", "test", "runtime"):
         binding = evidence["bindings"][name]
         assert hashlib.sha256((ROOT / binding["path"]).read_bytes()).hexdigest() == binding["sha256"]
+    broker = evidence["bindings"]["broker"]
+    broker_bytes = (ROOT / broker["path"]).read_bytes().replace(b"\r\n", b"\n")
+    assert b"\r" not in broker_bytes
+    assert hashlib.sha256(broker_bytes).hexdigest() == broker["sha256"]
     oracle = json.loads(ORACLE.read_bytes())
     assert oracle == {
         "signal_first_eligible": 15, "execution_offset_bars": 1,

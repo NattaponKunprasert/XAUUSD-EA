@@ -33,14 +33,14 @@ import pandas as pd
 _ROOT_TEXT = str(Path(__file__).resolve().parents[1])
 _D2_SOURCE_TEXT = str(Path(__file__).resolve())
 _AUTHORITY = (
-    ("config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json", "2068be230125e440f5bf7675a4aa88e8607f39e49f29cf4696b1402f1a5e8b0b"),
-    ("config/research_v2_r3_h1_volatility_shock_d1_contract.json", "2b6b83bbb7b07d566acffbdb852d48bd1cfc629085a8bd936b1fc500999b4963"),
-    ("config/xm_micro_gold.json", "baddca3104d70dd470545f3d211e8ca6610588531f11c53ed25e3c06f7e33457"),
+    ("config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json", "06ad8d39020a26f73f48b415908855773f4ed572e56fd9daa092a99149ecce1a"),
+    ("config/research_v2_r3_h1_volatility_shock_d1_contract.json", "3f2cc2a71265f28556b4511a60488ca2a5f0a6066ca11e89c3ddfd072ed5d0fc"),
+    ("config/xm_micro_gold.json", "4a7a6ab6116dd0368e2028493e3f1e646d10e60c78d926fea8f48a9e3e46c45b"),
     ("xauusd_ea/d2_runtime_primitives.py", "a7aa0474337fc108f71fe063ac3365df542eb9922077a40efca44d2c95296dab"),
-    ("xauusd_ea/research_v2_volatility_shock_d1.py", "022bc114d8c2a20dcb8a060d76bbbd573cb83324fdf984ea23ae27a32b453355"),
-    ("tests/test_research_v2_r3_h1_volatility_shock_d1.py", "8682fed421108a498da039317f96219254fc9f2681cd5d824f14ce511a5c6dcf"),
+    ("xauusd_ea/research_v2_volatility_shock_d1.py", "a3147fa4995b92fa3bff0c53cfbf76741bdc469e2cdbb4d2a65bc89b36e0aa0c"),
+    ("tests/test_research_v2_r3_h1_volatility_shock_d1.py", "28301553298a7e7bbf8bd83fe82d8b8f4318c4f2b9c0ede3be8278c5a6974121"),
 )
-_D1_CANONICAL_SHA = "9cfc1c6a8e6eab02b0960067b86411b24741614958c88a0b76de95cc34c47452"
+_D1_CANONICAL_SHA = "869a167f72ab1f1a977deecc2c6eb26fcde0cbb65c1040917df4521130688625"
 
 
 def _make_sealed_d2():
@@ -124,9 +124,10 @@ def _make_sealed_d2():
             raise error("Volatility Shock D2 authority path drift")
         if supplied_sources is not None and relative in supplied_sources:
             raw = supplied_sources[relative]
-            if type_fn(raw) is not bytes or sha256(raw).hexdigest() != expected:
+            canonical = raw.replace(b"\r\n", b"\n") if relative == "config/xm_micro_gold.json" else raw
+            if type_fn(raw) is not bytes or (relative == "config/xm_micro_gold.json" and b"\r" in canonical) or sha256(canonical).hexdigest() != expected:
                 raise error("Volatility Shock D2 passed-source identity drift")
-            return raw
+            return canonical
         root = canonical_root(root_text); target = root.joinpath(*relative.split("/")); text = str(target)
         if str(target.resolve()) != text or target.is_symlink() or not target.is_file():
             raise error("Volatility Shock D2 authority redirect")
@@ -149,9 +150,10 @@ def _make_sealed_d2():
         if (after.st_dev, after.st_ino, after.st_size) != (before.st_dev, before.st_ino, before.st_size) or str(target.resolve()) != text:
             raise error("Volatility Shock D2 authority TOCTOU drift")
         raw = b"".join(chunks)
-        if len_fn(raw) != before.st_size or sha256(raw).hexdigest() != expected:
+        canonical = raw.replace(b"\r\n", b"\n") if relative == "config/xm_micro_gold.json" else raw
+        if len_fn(raw) != before.st_size or (relative == "config/xm_micro_gold.json" and b"\r" in canonical) or sha256(canonical).hexdigest() != expected:
             raise error("Volatility Shock D2 authority identity drift")
-        return raw
+        return canonical
 
     def contract_hash(contract: Mapping[str, Any]) -> str:
         payload = dict(contract); payload.pop("contract_sha256", None)

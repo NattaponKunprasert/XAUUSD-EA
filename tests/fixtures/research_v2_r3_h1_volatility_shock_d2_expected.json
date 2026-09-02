@@ -6,11 +6,11 @@
   "promotion_label": "research",
   "scope": {"synthetic_h1_only": true, "no_d3": true, "no_candidates": true, "no_selection": true, "no_test_holdout_forward_or_full_sample": true, "no_notebook_execution": true, "no_mql5_or_promotion": true},
   "bindings": {
-    "d1_evidence": {"path": "config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json", "sha256": "2068be230125e440f5bf7675a4aa88e8607f39e49f29cf4696b1402f1a5e8b0b", "decision": "D1_GATE_PASSED_D2_NOT_RUN", "audit_terminal": "AUDIT: PASS"},
-    "d1_contract": {"path": "config/research_v2_r3_h1_volatility_shock_d1_contract.json", "file_sha256": "2b6b83bbb7b07d566acffbdb852d48bd1cfc629085a8bd936b1fc500999b4963", "canonical_sha256": "9cfc1c6a8e6eab02b0960067b86411b24741614958c88a0b76de95cc34c47452"},
-    "source": {"path": "xauusd_ea/research_v2_volatility_shock_d2.py", "sha256": "88e1ce7f7d2a78e9a67c3fe98d8466ae83bc5b1820f4ff1d5ca10a540a9db49c"},
+    "d1_evidence": {"path": "config/research_v2_r3_h1_volatility_shock_d1_audit_evidence.json", "sha256": "06ad8d39020a26f73f48b415908855773f4ed572e56fd9daa092a99149ecce1a", "decision": "D1_GATE_PASSED_D2_NOT_RUN", "audit_terminal": "AUDIT: PASS"},
+    "d1_contract": {"path": "config/research_v2_r3_h1_volatility_shock_d1_contract.json", "file_sha256": "3f2cc2a71265f28556b4511a60488ca2a5f0a6066ca11e89c3ddfd072ed5d0fc", "canonical_sha256": "869a167f72ab1f1a977deecc2c6eb26fcde0cbb65c1040917df4521130688625"},
+    "source": {"path": "xauusd_ea/research_v2_volatility_shock_d2.py", "sha256": "979e84583b7a5a6db7acc7195e684993607b69d8bb085373c04e2ffeb7421334"},
     "test": {"path": "tests/test_research_v2_r3_h1_volatility_shock_d2.py", "sha256": "908bab7a5dabd07472bf6576615f87f02ec1aead857e70747db8b55ea9d96967"},
-    "broker": {"path": "config/xm_micro_gold.json", "sha256": "baddca3104d70dd470545f3d211e8ca6610588531f11c53ed25e3c06f7e33457", "symbol": "GOLDmicro", "contract_size": 1.0},
+    "broker": {"path": "config/xm_micro_gold.json", "sha256": "4a7a6ab6116dd0368e2028493e3f1e646d10e60c78d926fea8f48a9e3e46c45b", "symbol": "GOLDmicro", "contract_size": 1.0},
     "runtime": {"path": "xauusd_ea/d2_runtime_primitives.py", "sha256": "a7aa0474337fc108f71fe063ac3365df542eb9922077a40efca44d2c95296dab"}
   },
   "runtime": {"timeframe": "H1", "signal_to_execution": "closed bar t to next H1 open t+1", "atr_period": 14, "fixed_lot": 0.1, "spreads": [1.0,1.5,2.0], "exits": "ATR14 stop/RR target; conservative stop-first; forced final close", "costs": "Bid OHLC; long Ask/Bid, short Bid/Ask; zero fees; directional Wednesday-triple swap", "accounting": "realized plus floating equity; peak-relative drawdown; one aggregate position", "isolated_worker_boundary": "parent snapshots exact D2/D1/runtime/config authorities once and sends bytes by stdin to two fresh python -I -B workers with distinct mode/nonce/PID envelopes; child never reopens passed source paths and only descriptor-reads authenticated H1"},
